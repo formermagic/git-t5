@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "git-t5"
+version = "0.1.0"
+description = ""
+authors = ["mozharovsky <mozharovsky@live.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.7"
+jax = "^0.2.16"
+jaxlib = "^0.1.68"
+flax = "^0.3.4"
+optax = "^0.0.9"
+transformers = "^4.8.2"
+datasets = "^1.8.0"
+sacrebleu = "^1.5.1"
+typing_extensions = { version = "^3.7.4", python = "<3.8" }
+
+[tool.poetry.dev-dependencies]
+black = "^21.6b0"
+pylint = "^2.9.3"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
