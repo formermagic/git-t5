@@ -1,0 +1,35 @@
+# byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# distribution / packaging
+dist/
+wheels/
+*.egg-info/
+*.egg
+
+# jupyter notebooks
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# environments
+.env
+.venv
+env/
+venv/
+
+# misc
+.DS_Store
+.vscode
+.devcontainer
+.git
+notebooks
+summaries
+models
+runs
