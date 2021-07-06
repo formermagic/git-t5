@@ -9,7 +9,7 @@ import tokenize
 from abc import abstractmethod
 from enum import Enum
 from io import BytesIO
-from typing import Dict, List, Text, Union
+from typing import Dict, List, Union
 
 from sacrebleu.tokenizers import TokenizerV14International
 
@@ -86,10 +86,10 @@ class Tokenizer:
 
     def process_string(
         self,
-        token: Text,
+        token: str,
         is_comment: bool,
         use_bleu_tokenization: bool = False,
-    ) -> Text:
+    ) -> str:
         if is_comment:
             token = re.sub(" +", " ", token)
             token = re.sub(r"(.)\1\1\1\1+", r"\1\1\1\1\1", token)
