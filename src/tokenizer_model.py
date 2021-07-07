@@ -21,8 +21,8 @@ Token = Union[str, AddedToken]
 class SentencePieceBPETokenizer(BaseTokenizer):
     def __init__(
         self,
-        add_prefix_space: bool = False,
         dropout: Optional[float] = None,
+        add_prefix_space: bool = False,
         trim_offsets: bool = False,
         unk_token: Token = "<unk>",
         eos_token: Token = "</s>",
