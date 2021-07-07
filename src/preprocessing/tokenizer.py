@@ -125,7 +125,7 @@ class Tokenizer:
 
 
 class PyTokenizer(Tokenizer):
-    SPECIAL_TOKENS: List[str] = set(token.value for token in SpecialToken)  # type: ignore
+    SPECIAL_TOKENS: List[str] = [token.value for token in SpecialToken]
 
     def __init__(self):
         super().__init__(
