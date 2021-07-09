@@ -1,0 +1,4 @@
+defaults:
+  - default
+  - arguments: tokenizer_args
+  - tokenizer_model: sentencepiece
