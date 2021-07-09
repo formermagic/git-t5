@@ -1,5 +1,6 @@
 import json
-from typing import Any, Iterator, List, Optional, Union
+from dataclasses import dataclass, field
+from typing import Iterator, List, Optional, Union
 
 from tokenizers import (
     AddedToken,
@@ -17,31 +18,47 @@ from tokenizers.processors import TemplateProcessing
 Token = Union[str, AddedToken]
 
 
+@dataclass
+class TokenizerConfig:
+    pass
+
+
+@dataclass
+class SentencePieceTokenizerConfig(TokenizerConfig):
+    dropout: Optional[float] = None
+    add_prefix_space: bool = False
+    trim_offsets: bool = False
+    unk_token: str = "<unk>"
+    eos_token: str = "</s>"
+    pad_token: str = "<pad>"
+    vocab_size: int = 30_000
+    min_frequency: int = 2
+    show_progress: bool = True
+    special_tokens: List[str] = field(default_factory=list)
+    model_max_length: int = 1024
+
+
 # pylint: disable=too-many-arguments
-class SentencePieceBPETokenizer(BaseTokenizer):
-    def __init__(
-        self,
-        dropout: Optional[float] = None,
-        add_prefix_space: bool = False,
-        trim_offsets: bool = False,
-        unk_token: Token = "<unk>",
-        eos_token: Token = "</s>",
-        pad_token: Token = "<pad>",
-    ) -> None:
+class SentencePieceTokenizer(BaseTokenizer):
+    def __init__(self, config: SentencePieceTokenizerConfig) -> None:
+        self.config = config
+
         # sentencepiece special tokens map
-        self.special_tokens = {
-            "pad": {"id": 0, "token": pad_token},
-            "eos": {"id": 1, "token": eos_token},
-            "unk": {"id": 2, "token": unk_token},
+        self.special_tokens_map = {
+            "pad": {"id": 0, "token": config.pad_token},
+            "eos": {"id": 1, "token": config.eos_token},
+            "unk": {"id": 2, "token": config.unk_token},
         }
 
         # sentencepiece special tokens list
-        self.special_tokens_list: List[Token] = [""] * len(self.special_tokens)
-        for token_dict in self.special_tokens.values():
-            self.special_tokens_list[token_dict["id"]] = token_dict["token"]
+        self.special_tokens: List[Token] = [""] * len(self.special_tokens_map)
+        for token_dict in self.special_tokens_map.values():
+            self.special_tokens[token_dict["id"]] = token_dict["token"]
+
+        self.special_tokens += config.special_tokens
 
         # sentencepiece byte-level bpe tokenizer
-        tokenizer = Tokenizer(BPE(dropout=dropout, unk_token=unk_token))
+        tokenizer = Tokenizer(BPE(dropout=config.dropout, unk_token=config.unk_token))
         # original sentencepiece normalization
         tokenizer.normalizer = normalizers.Sequence(  # type: ignore
             [
@@ -52,55 +69,42 @@ class SentencePieceBPETokenizer(BaseTokenizer):
         )
         # byte-level pre-tokenization similar to GPT-2
         tokenizer.pre_tokenizer = pre_tokenizers.ByteLevel(  # type: ignore
-            add_prefix_space=add_prefix_space
+            add_prefix_space=config.add_prefix_space
         )
         # byte-level decoding similar to GPT-2
         tokenizer.decoder = decoders.ByteLevel()  # type: ignore
         # original sentencepiece post processing
         tokenizer.post_processor = TemplateProcessing(  # type: ignore
-            single=f"$A {self.special_tokens['eos']['token']}",
+            single=f"$A {self.special_tokens_map['eos']['token']}",
             special_tokens=[
                 (
-                    self.special_tokens["eos"]["token"],
-                    self.special_tokens["eos"]["id"],
+                    self.special_tokens_map["eos"]["token"],
+                    self.special_tokens_map["eos"]["id"],
                 )
             ],
         )
 
         parameters = {
             "model": "ByteLevelBPE",
-            "add_prefix_space": add_prefix_space,
-            "dropout": dropout,
-            "trim_offsets": trim_offsets,
+            "add_prefix_space": config.add_prefix_space,
+            "dropout": config.dropout,
+            "trim_offsets": config.trim_offsets,
         }
 
         super().__init__(tokenizer, parameters)
 
-    @staticmethod
-    def from_file(
-        vocab_filename: str, merges_filename: str, **kwargs: Any
-    ) -> "SentencePieceBPETokenizer":
-        vocab, merges = BPE.read_file(vocab_filename, merges_filename)  # type: ignore
-        return SentencePieceBPETokenizer(vocab, merges, **kwargs)
-
     # pylint: disable=dangerous-default-value
-    def train(
-        self,
-        files: Union[str, List[str]],
-        vocab_size: int = 30000,
-        min_frequency: int = 2,
-        show_progress: bool = True,
-        special_tokens: List[Token] = [],
-    ) -> None:
+    def train(self, files: Union[str, List[str]]) -> None:
         """Train the model using the given files"""
 
-        special_tokens = self.special_tokens_list + special_tokens
+        if not isinstance(self.config.special_tokens, list):
+            self.config.special_tokens = list(self.config.special_tokens)
 
         trainer = trainers.BpeTrainer(
-            vocab_size=vocab_size,
-            min_frequency=min_frequency,
-            show_progress=show_progress,
-            special_tokens=special_tokens,
+            vocab_size=self.config.vocab_size,
+            min_frequency=self.config.min_frequency,
+            show_progress=self.config.show_progress,
+            special_tokens=self.config.special_tokens,
             initial_alphabet=pre_tokenizers.ByteLevel.alphabet(),
         )
 
@@ -111,22 +115,18 @@ class SentencePieceBPETokenizer(BaseTokenizer):
         self._add_token_id("unk")
 
     def train_from_iterator(
-        self,
-        iterator: Union[Iterator[str], Iterator[Iterator[str]]],
-        vocab_size: int = 30000,
-        min_frequency: int = 2,
-        show_progress: bool = True,
-        special_tokens: List[Token] = [],
+        self, iterator: Union[Iterator[str], Iterator[Iterator[str]]]
     ) -> None:
         """Train the model using the given iterator"""
 
-        special_tokens = self.special_tokens_list + special_tokens
+        if not isinstance(self.config.special_tokens, list):
+            self.config.special_tokens = list(self.config.special_tokens)
 
         trainer = trainers.BpeTrainer(
-            vocab_size=vocab_size,
-            min_frequency=min_frequency,
-            show_progress=show_progress,
-            special_tokens=special_tokens,
+            vocab_size=self.config.vocab_size,
+            min_frequency=self.config.min_frequency,
+            show_progress=self.config.show_progress,
+            special_tokens=self.config.special_tokens,
             initial_alphabet=pre_tokenizers.ByteLevel.alphabet(),
         )
 
@@ -136,5 +136,5 @@ class SentencePieceBPETokenizer(BaseTokenizer):
     def _add_token_id(self, token: str) -> None:
         token_id = f"{token}_id"
         tokenizer_json = json.loads(self._tokenizer.to_str())
-        tokenizer_json["model"][token_id] = self.special_tokens[token]["id"]
+        tokenizer_json["model"][token_id] = self.special_tokens_map[token]["id"]
         self._tokenizer = Tokenizer.from_str(json.dumps(tokenizer_json))
