@@ -1,1 +1,1 @@
-from .tokenizer_model import SentencePieceBPETokenizer
+from .tokenizer_model import SentencePieceTokenizer, SentencePieceTokenizerConfig
