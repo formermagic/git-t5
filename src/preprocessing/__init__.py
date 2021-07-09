@@ -1,1 +1,1 @@
-from .tokenizer import PyTokenizer, Tokenizer
+from .code_tokenizer import PyTokenizer, Tokenizer
