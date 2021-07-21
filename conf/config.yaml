@@ -1,4 +1,4 @@
 defaults:
   - default
   - arguments: base_arguments
-  - tokenizer_model: base_tokenizer_model
+  - tokenizer: base_tokenizer
