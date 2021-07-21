@@ -2,7 +2,7 @@ import difflib
 import re
 from typing import List
 
-from src.preprocessing.code_tokenizer import Tokenizer
+from .code_tokenizer import Tokenizer
 
 
 class UnidiffBuilder:
