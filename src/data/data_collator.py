@@ -77,7 +77,7 @@ class FlaxDataCollatorForT5MLM:
 
         return batch
 
-    def denoise(self, features):
+    def denoise(self, features: Dict[str, np.ndarray]) -> Dict[str, np.ndarray]:
         tokens = features["input_ids"]
         noise_mask = self.random_spans_noise_mask(np.size(tokens))
 
@@ -100,7 +100,7 @@ class FlaxDataCollatorForT5MLM:
     def append_eos_token(self, tokens: np.ndarray) -> np.ndarray:
         return np.concatenate((tokens, [self.eos_token_id]), axis=0)
 
-    def random_spans_noise_mask(self, length):
+    def random_spans_noise_mask(self, length: int) -> np.ndarray:
         """This function is copy of `random_spans_helper <https://github.com/google-research/text-to-text-transfer-transformer/blob/84f8bcc14b5f2c03de51bd3587609ba8f6bbd1cd/t5/data/preprocessors.py#L2682>`__ .
         Noise mask consisting of random spans of noise tokens.
         The number of noise tokens and the number of noise spans and non-noise spans
@@ -129,7 +129,7 @@ class FlaxDataCollatorForT5MLM:
         num_nonnoise_tokens = length - num_noise_tokens
 
         # pick the lengths of the noise spans and the non-noise spans
-        def _random_segmentation(num_items, num_segments):
+        def _random_segmentation(num_items: int, num_segments: int) -> np.ndarray:
             """Partition a sequence of items randomly into non-empty segments.
             Args:
                 num_items: an integer scalar > 0
