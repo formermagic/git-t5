@@ -97,14 +97,11 @@ class SentencePieceTokenizer(BaseTokenizer):
     def train(self, files: Union[str, List[str]]) -> None:
         """Train the model using the given files"""
 
-        if not isinstance(self.config.special_tokens, list):
-            self.config.special_tokens = list(self.config.special_tokens)
-
         trainer = trainers.BpeTrainer(
             vocab_size=self.config.vocab_size,
             min_frequency=self.config.min_frequency,
             show_progress=self.config.show_progress,
-            special_tokens=self.config.special_tokens,
+            special_tokens=self.special_tokens,
             initial_alphabet=pre_tokenizers.ByteLevel.alphabet(),
         )
 
@@ -119,14 +116,11 @@ class SentencePieceTokenizer(BaseTokenizer):
     ) -> None:
         """Train the model using the given iterator"""
 
-        if not isinstance(self.config.special_tokens, list):
-            self.config.special_tokens = list(self.config.special_tokens)
-
         trainer = trainers.BpeTrainer(
             vocab_size=self.config.vocab_size,
             min_frequency=self.config.min_frequency,
             show_progress=self.config.show_progress,
-            special_tokens=self.config.special_tokens,
+            special_tokens=self.special_tokens,
             initial_alphabet=pre_tokenizers.ByteLevel.alphabet(),
         )
 
