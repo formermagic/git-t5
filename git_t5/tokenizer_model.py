@@ -55,7 +55,7 @@ class SentencePieceTokenizer(BaseTokenizer):
         for token_dict in self.special_tokens_map.values():
             self.special_tokens[token_dict["id"]] = token_dict["token"]
 
-        self.special_tokens += config.special_tokens
+        self.special_tokens += list(config.special_tokens)
 
         # sentencepiece byte-level bpe tokenizer
         tokenizer = Tokenizer(BPE(dropout=config.dropout, unk_token=config.unk_token))
