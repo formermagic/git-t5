@@ -73,7 +73,9 @@ def reduce_concat_tokens(
     batch_size: int,
     pad: int = 0,
 ) -> Dataset:
-    def map_fn(features):
+    def map_fn(
+        features: Dict[str, List[Union[List[int], np.ndarray]]]
+    ) -> Dict[str, List[np.ndarray]]:
         tokens = pad_batch(features[feature_key], pad)
         tokens = np.reshape(tokens, [-1])
         tokens = tokens[tokens != pad]
@@ -98,7 +100,7 @@ def split_tokens(
     drop_last: bool = True,
 ) -> Dataset:
     def split_fn(
-        features: Dict[str, Union[List[List[int]], np.ndarray]]
+        features: Dict[str, List[Union[List[int], np.ndarray]]]
     ) -> Dict[str, np.ndarray]:
         tokens = features[feature_key][0]
         num_tokens = np.size(tokens)
