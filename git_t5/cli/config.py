@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 
-from git_t5.tokenizer_model import TokenizerConfig
-from git_t5.tokenizer_trainer import TokenizerTrainerConfig
+from git_t5.core import TokenizerConfig, TokenizerTrainerConfig
 from git_t5.trainer import DataConfig, ModelConfig, TrainingConfig
 from hydra.core.config_store import ConfigStore
 

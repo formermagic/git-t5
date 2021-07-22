@@ -1,8 +1,12 @@
 from dataclasses import dataclass
 
 import hydra
-from git_t5.tokenizer_model import SentencePieceTokenizer, SentencePieceTokenizerConfig
-from git_t5.tokenizer_trainer import SentencePieceTrainer, SentencePieceTrainerConfig
+from git_t5.core import (
+    SentencePieceTokenizer,
+    SentencePieceTokenizerConfig,
+    SentencePieceTrainer,
+    SentencePieceTrainerConfig,
+)
 from hydra.core.config_store import ConfigStore
 
 from .config import DefaultConfig, register_base_configs
