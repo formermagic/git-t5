@@ -1,3 +1,4 @@
+import os
 from dataclasses import dataclass
 
 import hydra
@@ -41,6 +42,9 @@ def hydra_entry(cfg: Config) -> None:
 
 
 def main() -> None:
+    # enable rust iterators multithreading
+    os.environ["TOKENIZERS_PARALLELISM"] = "true"
+
     register_base_configs()
     register_configs()
     hydra_entry()  # pylint: disable=no-value-for-parameter
