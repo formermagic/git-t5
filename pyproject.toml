@@ -4,6 +4,9 @@ version = "0.1.0"
 description = ""
 authors = ["mozharovsky <mozharovsky@live.com>"]
 
+[tool.poetry.scripts]
+gt5-train-tokenizer = 'git_t5.cli.train_tokenizer:main'
+
 [tool.poetry.dependencies]
 python = "^3.7"
 jax = "^0.2.16"
