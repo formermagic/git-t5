@@ -20,7 +20,11 @@ Token = Union[str, AddedToken]
 
 @dataclass
 class TokenizerConfig:
-    pass
+    vocab_size: int = 30_000
+    special_tokens: List[str] = field(default_factory=list)
+    additional_special_tokens: List[str] = field(default_factory=list)
+    model_max_length: Optional[int] = None
+    show_progress: bool = True
 
 
 @dataclass
@@ -28,14 +32,10 @@ class SentencePieceTokenizerConfig(TokenizerConfig):
     dropout: Optional[float] = None
     add_prefix_space: bool = False
     trim_offsets: bool = False
+    min_frequency: int = 2
     unk_token: str = "<unk>"
     eos_token: str = "</s>"
     pad_token: str = "<pad>"
-    vocab_size: int = 30_000
-    min_frequency: int = 2
-    show_progress: bool = True
-    special_tokens: List[str] = field(default_factory=list)
-    model_max_length: int = 1024
 
 
 # pylint: disable=too-many-arguments
