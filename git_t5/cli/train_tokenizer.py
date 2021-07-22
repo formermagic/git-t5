@@ -30,13 +30,17 @@ def register_configs() -> None:
 
 
 @hydra.main(config_path="../../conf", config_name="config_tokenizer")
-def main(cfg: Config) -> None:
+def hydra_entry(cfg: Config) -> None:
     tokenizer = SentencePieceTokenizer(cfg.tokenizer)
     trainer = SentencePieceTrainer(cfg.tokenizer_trainer)
     trainer.train(tokenizer)
 
 
-if __name__ == "__main__":
+def main() -> None:
     register_base_configs()
     register_configs()
-    main()  # pylint: disable=no-value-for-parameter
+    hydra_entry()  # pylint: disable=no-value-for-parameter
+
+
+if __name__ == "__main__":
+    main()
