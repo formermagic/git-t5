@@ -93,8 +93,7 @@ class SentencePieceTokenizer(BaseTokenizer):
 
         super().__init__(tokenizer, parameters)
 
-    # pylint: disable=dangerous-default-value
-    def train(self, files: Union[str, List[str]]) -> None:
+    def train_from_files(self, files: Union[str, List[str]]) -> None:
         """Train the model using the given files"""
 
         trainer = trainers.BpeTrainer(
