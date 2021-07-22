@@ -1,4 +1,4 @@
 defaults:
   - default
-  - arguments: tokenizer_args
   - tokenizer: sentencepiece
+  - tokenizer_trainer: sentencepiece
