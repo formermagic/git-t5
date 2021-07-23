@@ -1,16 +1,34 @@
 from typing import Dict, List
 
-import jax.numpy as jnp
 import numpy as np
 from flax.struct import dataclass as flax_dataclass
 from jax import ops
 from transformers import PreTrainedTokenizerBase
-from transformers.models.t5.modeling_flax_t5 import shift_tokens_right
 
 from .data_preprocessing import (
     noise_span_to_unique_sentinel,
     nonnoise_span_to_unique_sentinel,
 )
+
+
+def shift_tokens_right(
+    input_ids: np.ndarray,
+    pad_token_id: int,
+    decoder_start_token_id: int,
+) -> np.ndarray:
+    """
+    Shift input ids one token to the right.
+    """
+    shifted_input_ids = np.roll(input_ids, 1, axis=-1)
+    shifted_input_ids = ops.index_update(
+        shifted_input_ids, (..., 0), decoder_start_token_id
+    )
+    # replace possible -100 values in labels by `pad_token_id`
+    shifted_input_ids = np.where(
+        shifted_input_ids == -100, pad_token_id, shifted_input_ids
+    )
+
+    return shifted_input_ids
 
 
 @flax_dataclass
@@ -88,7 +106,7 @@ class FlaxDataCollatorForT5MLM:
             tokens, noise_mask, self.sentinel_token_id, self.sentinel_tokens_reversed
         )
         decoder_input_ids = shift_tokens_right(
-            jnp.array(labels), self.pad_token_id, self.decoder_start_token_id
+            labels, self.pad_token_id, self.decoder_start_token_id
         )
 
         return {
