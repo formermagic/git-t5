@@ -1,17 +1,19 @@
 import math
-from typing import Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, TypeVar, Union
 
 import datasets
 import numpy as np
 
-Dataset = Union[datasets.Dataset, datasets.DatasetDict]
+Dataset = TypeVar("Dataset", bound=Union[datasets.Dataset, datasets.DatasetDict])
 
 
-def column_names(dataset: Dataset) -> List[str]:
+def column_names(dataset: Any) -> List[str]:
     if isinstance(dataset, datasets.DatasetDict):
         values = dataset["train"].column_names
-    else:
+    elif isinstance(dataset, datasets.Dataset):
         values = dataset.column_names
+    else:
+        raise ValueError("Unsupported dataset type.")
     return values
 
 
