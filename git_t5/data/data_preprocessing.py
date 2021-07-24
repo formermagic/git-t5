@@ -39,8 +39,8 @@ def select_random_chunk(
     dataset: Dataset,
     feature_key: str,
     max_sequence_length: int,
-    uniform_random_start: bool = False,
     seed: Optional[int] = None,
+    uniform_random_start: bool = False,
     load_from_cache_file: bool = True,
     num_workers: Optional[int] = None,
 ) -> Dataset:
@@ -81,37 +81,11 @@ def select_random_chunk(
     return dataset
 
 
-def reduce_concat_tokens(
-    dataset: Dataset,
-    feature_key: str,
-    batch_size: int,
-    pad: int = 0,
-    load_from_cache_file: bool = True,
-    num_workers: Optional[int] = None,
-) -> Dataset:
-    def map_fn(
-        features: Dict[str, List[Union[List[int], np.ndarray]]]
-    ) -> Dict[str, List[np.ndarray]]:
-        tokens = pad_batch(features[feature_key], pad)
-        tokens = np.reshape(tokens, [-1])
-        tokens = tokens[tokens != pad]
-        return {feature_key: [tokens]}
-
-    dataset = dataset.map(
-        map_fn,
-        batched=True,
-        batch_size=batch_size,
-        remove_columns=column_names(dataset),
-        load_from_cache_file=load_from_cache_file,
-        num_proc=num_workers,
-    )
-
-    return dataset
-
-
 def split_tokens(
     dataset: Dataset,
     feature_key: str,
+    batch_size: int,
+    pad_token_id: int,
     min_tokens_per_segment: Optional[int],
     max_tokens_per_segment: int,
     seed: Optional[int] = None,
@@ -119,11 +93,16 @@ def split_tokens(
     load_from_cache_file: bool = True,
     num_workers: Optional[int] = None,
 ) -> Dataset:
-    def split_fn(
+    def map_fn(
         features: Dict[str, List[Union[List[int], np.ndarray]]]
-    ) -> Dict[str, np.ndarray]:
-        tokens = features[feature_key][0]
+    ) -> Dict[str, List[np.ndarray]]:
+        # pad and roll the batch by the `feature_key`
+        tokens = pad_batch(features[feature_key], pad_token_id)
+        tokens = np.reshape(tokens, [-1])
+        tokens = tokens[tokens != pad_token_id]
         num_tokens = np.size(tokens)
+
+        # calculate the length of segments
         if min_tokens_per_segment is None:
             length: int = max_tokens_per_segment
         else:
@@ -138,6 +117,7 @@ def split_tokens(
                 .item()
             )
 
+        # split chunks into padded segments (batches)
         num_segments = np.ceil(np.divide(num_tokens, length))
         num_segments = num_segments.astype(np.int32)
         padding = num_segments * length - num_tokens
@@ -148,38 +128,24 @@ def split_tokens(
             [np.repeat(length, num_segments - 1), [length - padding]], axis=0
         )
 
-        return {"outputs": outputs, "lengths": lengths}
+        # unwrap the padded segments + drop the last rows if needed
+        input_ids: List[np.ndarray] = []
+        for output, length in zip(outputs, lengths):
+            if drop_last and length != max_tokens_per_segment:
+                continue
 
-    def strip_fn(features: Dict[str, np.ndarray]) -> Dict[str, np.ndarray]:
-        outputs = features["outputs"]
-        lengths = features["lengths"]
-        return {feature_key: outputs[:lengths]}
+            input_ids.append(output[:length])
 
-    def drop_fn(features: Dict[str, np.ndarray]) -> bool:
-        return np.equal(np.size(features[feature_key]), max_tokens_per_segment).item()
+        return {feature_key: input_ids}
 
     dataset = dataset.map(
-        split_fn,
+        map_fn,
         batched=True,
-        batch_size=1,
+        batch_size=batch_size,
         remove_columns=column_names(dataset),
         load_from_cache_file=load_from_cache_file,
         num_proc=num_workers,
     )
-
-    dataset = dataset.map(
-        strip_fn,
-        remove_columns=column_names(dataset),
-        load_from_cache_file=load_from_cache_file,
-        num_proc=num_workers,
-    )
-
-    if drop_last:
-        dataset = dataset.filter(
-            drop_fn,
-            load_from_cache_file=load_from_cache_file,
-            num_proc=num_workers,
-        )
 
     return dataset
 
@@ -239,16 +205,11 @@ def prepare_dataset(
         load_from_cache_file=load_from_cache_file,
         num_workers=num_workers,
     )
-    ds = reduce_concat_tokens(
-        ds,
-        feature_key="input_ids",
-        batch_size=batch_size,
-        load_from_cache_file=load_from_cache_file,
-        num_workers=num_workers,
-    )
     ds = split_tokens(
         ds,
         feature_key="input_ids",
+        batch_size=batch_size,
+        pad_token_id=0,
         min_tokens_per_segment=None,
         max_tokens_per_segment=input_length,
         drop_last=drop_last,
