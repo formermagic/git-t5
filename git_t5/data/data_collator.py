@@ -1,7 +1,7 @@
+from dataclasses import dataclass
 from typing import Dict, List
 
 import numpy as np
-from flax.struct import dataclass as flax_dataclass
 from jax import ops
 from transformers import PreTrainedTokenizerBase
 
@@ -31,8 +31,8 @@ def shift_tokens_right(
     return shifted_input_ids
 
 
-@flax_dataclass
-class FlaxDataCollatorForT5MLM:
+@dataclass
+class DataCollatorForT5MLM:
     """
     Data collator used for T5 span-masked language modeling.
     It is made sure that after masking the inputs are of length `data_args.max_seq_length` and targets are also of fixed length.
