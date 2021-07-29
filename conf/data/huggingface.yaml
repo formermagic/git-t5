@@ -1,0 +1,9 @@
+defaults:
+  - base_data
+
+model_path: ${model.model_path}
+tokenizer_path: ${model.tokenizer_path}
+use_fast_tokenizer: ${model.use_fast_tokenizer}
+cache_dir: ${model.cache_dir}
+decoder_start_token_id: 0
+seed: ${model.seed}
