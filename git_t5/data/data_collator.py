@@ -99,19 +99,31 @@ class DataCollatorForT5MLM:
         tokens = features["input_ids"]
         noise_mask = self.random_spans_noise_mask(np.size(tokens))
 
-        input_ids = noise_span_to_unique_sentinel(
-            tokens, noise_mask, self.sentinel_token_id, self.sentinel_tokens_reversed
+        input_ids = self.append_eos_token(
+            noise_span_to_unique_sentinel(
+                tokens,
+                noise_mask,
+                self.sentinel_token_id,
+                self.sentinel_tokens_reversed,
+            )
         )
-        labels = nonnoise_span_to_unique_sentinel(
-            tokens, noise_mask, self.sentinel_token_id, self.sentinel_tokens_reversed
+        labels = self.append_eos_token(
+            nonnoise_span_to_unique_sentinel(
+                tokens,
+                noise_mask,
+                self.sentinel_token_id,
+                self.sentinel_tokens_reversed,
+            )
         )
         decoder_input_ids = shift_tokens_right(
-            labels, self.pad_token_id, self.decoder_start_token_id
+            labels,
+            self.pad_token_id,
+            self.decoder_start_token_id,
         )
 
         return {
-            "input_ids": self.append_eos_token(input_ids),
-            "labels": self.append_eos_token(labels),
+            "input_ids": input_ids,
+            "labels": labels,
             "decoder_input_ids": decoder_input_ids,
         }
 
