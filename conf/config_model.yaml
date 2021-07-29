@@ -2,6 +2,6 @@ defaults:
   - default
   - tokenizer: base_tokenizer
   - tokenizer_trainer: base_tokenizer_trainer
-  - data: base_data
-  - model: base_model
-  - trainer: base_trainer
+  - data: huggingface
+  - model: huggingface
+  - trainer: huggingface

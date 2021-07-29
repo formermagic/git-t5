@@ -2,3 +2,6 @@ defaults:
   - default
   - tokenizer: sentencepiece
   - tokenizer_trainer: sentencepiece
+  - data: base_data
+  - model: base_model
+  - trainer: base_trainer
