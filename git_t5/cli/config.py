@@ -1,7 +1,12 @@
 from dataclasses import dataclass
 
-from git_t5.core import TokenizerConfig, TokenizerTrainerConfig
-from git_t5.trainer import DataConfig, ModelConfig, TrainingConfig
+from git_t5.core import (
+    DataModuleConfig,
+    ModelConfig,
+    TokenizerConfig,
+    TokenizerTrainerConfig,
+    TrainerConfig,
+)
 from hydra.core.config_store import ConfigStore
 
 
@@ -10,8 +15,8 @@ class DefaultConfig:
     tokenizer: TokenizerConfig = TokenizerConfig()
     tokenizer_trainer: TokenizerTrainerConfig = TokenizerTrainerConfig()
     model: ModelConfig = ModelConfig()
-    data: DataConfig = DataConfig()
-    training: TrainingConfig = TrainingConfig()
+    data: DataModuleConfig = DataModuleConfig()
+    trainer: TrainerConfig = TrainerConfig()
 
 
 def register_base_configs() -> None:
@@ -35,10 +40,10 @@ def register_base_configs() -> None:
     cs.store(
         group="data",
         name="base_data",
-        node=DataConfig,
+        node=DataModuleConfig,
     )
     cs.store(
-        group="training",
-        name="base_training",
-        node=TrainingConfig,
+        group="trainer",
+        name="base_trainer",
+        node=TrainerConfig,
     )
