@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 from git_t5.core import (
     DataModuleConfig,
+    LoggerConfig,
     ModelConfig,
     TokenizerConfig,
     TokenizerTrainerConfig,
@@ -46,4 +47,9 @@ def register_base_configs() -> None:
         group="trainer",
         name="base_trainer",
         node=TrainerConfig,
+    )
+    cs.store(
+        group="logger",
+        name="base_logger",
+        node=LoggerConfig,
     )
