@@ -6,6 +6,7 @@ authors = ["mozharovsky <mozharovsky@live.com>"]
 
 [tool.poetry.scripts]
 gt5-train-tokenizer = 'git_t5.cli.train_tokenizer:main'
+gt5-train-model = 'git_t5.cli.train_model:main'
 
 [tool.poetry.dependencies]
 python = "^3.7"
