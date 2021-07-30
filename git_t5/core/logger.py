@@ -1,5 +1,6 @@
 import os
 from abc import abstractmethod
+from dataclasses import dataclass
 from functools import wraps
 from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, TypeVar
 
@@ -60,19 +61,29 @@ class BaseLogger:
         return metrics
 
 
+@dataclass
+class LoggerConfig:
+    pass
+
+
+@dataclass
+class WandbLoggerConfig(LoggerConfig):
+    name: Optional[str] = None
+    save_dir: Optional[str] = None
+    offline: Optional[bool] = None
+    run_id: Optional[str] = None
+    anonymous: Optional[bool] = None
+    version: Optional[str] = None
+    project: Optional[str] = None
+    prefix: Optional[str] = None
+
+
 class WandbLogger(BaseLogger):
     # pylint: disable=too-many-arguments
     def __init__(
         self,
-        name: Optional[str] = None,
-        save_dir: Optional[str] = None,
-        offline: Optional[bool] = False,
-        run_id: Optional[str] = None,
-        anonymous: Optional[bool] = None,
-        version: Optional[str] = None,
-        project: Optional[str] = None,
+        config: WandbLoggerConfig,
         experiment: Optional[Run] = None,
-        prefix: Optional[str] = "",
         **kwargs,
     ) -> None:
         anonymous_map = {
@@ -81,25 +92,24 @@ class WandbLogger(BaseLogger):
             None: None,
         }
 
-        self._offline = offline
-        self._experiment = experiment
-        self._prefix = prefix
+        self.config = config
         self._wandb_init = dict(
-            name=name,
-            project=project,
-            id=version or run_id,
-            dir=save_dir,
+            name=config.name,
+            project=config.project,
+            id=config.version or config.run_id,
+            dir=config.save_dir,
             resume="allow",
-            anonymous=anonymous_map.get(anonymous),
+            anonymous=anonymous_map.get(config.anonymous),
         )
 
         self._wandb_init.update(**kwargs)
+        self._experiment = experiment
 
     @property
     @rank_zero_experiment
     def experiment(self) -> Run:
         if self._experiment is None:
-            if self._offline:
+            if self.config.offline:
                 os.environ["WANDB_MODE"] = "dryrun"
 
             if wandb.run is None:
@@ -120,7 +130,7 @@ class WandbLogger(BaseLogger):
     def log_metrics(
         self, metrics: Dict[str, float], step: Optional[int] = None
     ) -> None:
-        metrics = self._add_prefix(metrics, prefix=self._prefix)
+        metrics = self._add_prefix(metrics, prefix=self.config.prefix)
         if step is not None:
             self.experiment.log({**metrics, "trainer/global_step": step})
         else:
