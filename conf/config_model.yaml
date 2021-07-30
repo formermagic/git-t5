@@ -5,3 +5,4 @@ defaults:
   - data: huggingface
   - model: huggingface
   - trainer: huggingface
+  - logger: wandb

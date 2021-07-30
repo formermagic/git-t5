@@ -5,3 +5,4 @@ defaults:
   - data: base_data
   - model: base_model
   - trainer: base_trainer
+  - logger: base_logger
