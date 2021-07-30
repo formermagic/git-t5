@@ -23,7 +23,7 @@ else:
     T5Trainer = Any
 
 
-def decay_mask_fn(params):
+def decay_mask_fn(params: Dict[str, Any]) -> Dict[str, Any]:
     """
     We use Optax's "masking" functionality to not apply weight decay
     to bias and LayerNorm scale parameters. decay_mask_fn returns a
