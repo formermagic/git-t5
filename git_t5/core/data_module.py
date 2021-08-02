@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
 
 import datasets
+import jax
 import numpy as np
 from git_t5.data import (
     DataCollatorForT5MLM,
@@ -9,9 +10,9 @@ from git_t5.data import (
     compute_input_and_target_lengths,
     prepare_dataset,
 )
+from omegaconf import MISSING
 from transformers import AutoTokenizer, PreTrainedTokenizerBase
 from transformers.tokenization_utils_base import VERY_LARGE_INTEGER
-from omegaconf import MISSING
 
 if TYPE_CHECKING:
     from .trainer import T5Trainer
@@ -111,18 +112,20 @@ class T5DataModule:
         self.dataset = self.prepare_dataset(self.dataset)
 
     def train_dataloader(self) -> DataLoader:
+        total_batch_size = self.config.train_batch_size * jax.device_count()
         return DataLoader(
             self.dataset["train"],
-            batch_size=self.config.train_batch_size,
+            batch_size=total_batch_size,
             collate_fn=self.data_collator,
             shuffle=True,
             seed=self.config.seed,
         )
 
     def valid_dataloader(self) -> DataLoader:
+        total_batch_size = self.config.eval_batch_size * jax.device_count()
         return DataLoader(
             self.dataset["validation"],
-            batch_size=self.config.eval_batch_size,
+            batch_size=total_batch_size,
             collate_fn=self.data_collator,
             shuffle=False,
             seed=None,
