@@ -181,7 +181,7 @@ class T5Trainer:
         # restore optimizer weights
         with open(os.path.join(save_dir, "opt_state.msgpack"), "rb") as f:
             opt_state = from_bytes(state.opt_state, f.read())
-            assert isinstance(opt_state, optax.OptState)
+            assert isinstance(opt_state, type(state.opt_state))
 
         # restore the training state
         with open(os.path.join(save_dir, "training_state.json"), "r") as f:
