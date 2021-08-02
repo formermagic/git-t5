@@ -139,8 +139,8 @@ class T5ModelForPreTraining:
 
         # compute loss
         logits = outputs[0]
-        labels = onehot(labels, logits.shape[-1])
-        loss = optax.softmax_cross_entropy(logits, labels).mean()
+        labels_onehot = onehot(labels, logits.shape[-1])
+        loss = optax.softmax_cross_entropy(logits, labels_onehot).mean()
         # compute accuracy
         accuracy = jnp.equal(jnp.argmax(logits, axis=-1), labels).mean()
         # prepare validation metrics
