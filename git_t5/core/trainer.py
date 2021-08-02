@@ -151,6 +151,11 @@ class T5Trainer:
             commit_message=f"Saving weights and logs of step {state.step}",
         )
 
+        # unwrap state step scalar
+        state_step = state.step
+        if isinstance(state_step, jnp.ndarray):
+            state_step = state_step.item()
+
         # save optimizer weights
         with open(os.path.join(save_dir, "opt_state.msgpack"), "wb") as f:
             f.write(to_bytes(state.opt_state))  # type: ignore
@@ -158,7 +163,7 @@ class T5Trainer:
         # save the training state
         with open(os.path.join(save_dir, "training_state.json"), "w") as f:
             training_state = {
-                "step": state.step,
+                "step": state_step,
                 "global_step": self.global_step,
                 "current_epoch": self.current_epoch,
             }
