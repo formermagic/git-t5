@@ -1,7 +1,9 @@
 import json
 import os
 import time
+from collections import defaultdict
 from dataclasses import dataclass
+from functools import partial
 from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple
 
 import jax
@@ -73,7 +75,7 @@ class T5Trainer:
         train_time = 0
 
         for epoch in range(num_epochs):
-            running_loss = jnp.array(0, dtype=jnp.float32)
+            running_metrics = defaultdict(partial(jnp.array, 0, dtype=jnp.float32))
             current_step = 0
             train_start_time = time.time()
             self.current_epoch = epoch
@@ -87,21 +89,29 @@ class T5Trainer:
                     state, dropout_rng, batch
                 )
 
-                running_loss += jax_utils.unreplicate(metrics["loss"])
+                # accumulate train metrics
+                for name, value in metrics.items():
+                    running_metrics[name] += jax_utils.unreplicate(value)
+
                 current_step += 1
                 self.global_step += 1
 
                 if current_step % self.config.logging_steps == 0:
                     state_step = jax_utils.unreplicate(state.step)
-                    train_loss = running_loss / current_step
                     train_lr = scheduler_fn(state_step - 1)
                     train_time += time.time() - train_start_time
 
+                    metrics = self.prepare_metrics(
+                        running_metrics,
+                        step=current_step,
+                        prefix="train",
+                    )
+
                     metrics = {
                         "step": state_step.item(),
-                        "train_loss": train_loss.item(),
                         "train_lr": train_lr.item(),  # type: ignore
                         "train_time": train_time,
+                        **metrics,
                     }
 
                     self.logger.log_metrics(metrics, step=self.global_step)
@@ -116,8 +126,7 @@ class T5Trainer:
     def validate(self, state: TrainState) -> Dict[str, float]:
         valid_dataloader = self.data_module.valid_dataloader()
         valid_samples = len(valid_dataloader)
-        running_loss = jnp.array(0, dtype=jnp.float32)
-        running_accuracy = jnp.array(0, dtype=jnp.float32)
+        running_metrics = defaultdict(partial(jnp.array, 0, dtype=jnp.float32))
         current_step = 0
 
         for batch in tqdm(
@@ -125,17 +134,17 @@ class T5Trainer:
             total=valid_samples,
             desc="Validating...",
         ):
+            # accumulate validation metrics
             metrics = self.model.valid_step(state, batch)
-            running_loss += jax_utils.unreplicate(metrics["loss"])
-            running_accuracy += jax_utils.unreplicate(metrics["accuracy"])
+            for name, value in metrics.items():
+                running_metrics[name] += jax_utils.unreplicate(value)
             current_step += 1
 
-        loss = running_loss / current_step
-        accuracy = running_accuracy / current_step
-        metrics = {
-            "valid_loss": loss.item(),
-            "valid_accuracy": accuracy.item(),
-        }
+        metrics = self.prepare_metrics(
+            running_metrics,
+            step=current_step,
+            prefix="valid",
+        )
 
         return metrics
 
@@ -221,3 +230,13 @@ class T5Trainer:
 
         state = jax_utils.replicate(state)
         return state
+
+    def prepare_metrics(
+        self,
+        metrics: Dict[str, jnp.ndarray],
+        step: int,
+        prefix: str,
+    ) -> Dict[str, float]:
+        return {
+            f"{prefix}_{name}": (value / step).item() for name, value in metrics.items()
+        }
