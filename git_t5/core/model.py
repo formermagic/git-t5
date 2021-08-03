@@ -169,7 +169,7 @@ class T5ModelForPreTraining:
             end_value=0,
             transition_steps=num_train_steps - self.config.warmup_steps,
         )
-        lr_schedule_fn = optax.join_schedules(
+        scheduler_fn = optax.join_schedules(
             schedules=[warmup_fn, decay_fn],
             boundaries=[self.config.warmup_steps],
         )
@@ -177,18 +177,18 @@ class T5ModelForPreTraining:
         if self.config.adafactor:
             # we use the default parameters here to initialize adafactor
             optimizer = optax.adafactor(
-                learning_rate=lr_schedule_fn,
+                learning_rate=scheduler_fn,
             )
         else:
             optimizer = optax.adamw(
-                learning_rate=lr_schedule_fn,
+                learning_rate=scheduler_fn,
                 b1=self.config.adam_beta1,
                 b2=self.config.adam_beta2,
                 weight_decay=self.config.weight_decay,
                 mask=decay_mask_fn,
             )
 
-        return optimizer, lr_schedule_fn
+        return optimizer, scheduler_fn
 
     def load_model(self) -> FlaxT5ForConditionalGeneration:
         config = self.load_config()
