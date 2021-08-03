@@ -114,11 +114,13 @@ class T5ModelForPreTraining:
         # compute loss & gradients
         grad_fn = jax.value_and_grad(loss_fn)
         loss, grads = grad_fn(state.params)
+        # compute perplexity
+        perplexity = jnp.exp(loss)
         # apply computed gradients
         grads = jax.lax.pmean(grads, "batch")
         state = state.apply_gradients(grads=grads)
         # prepare train metrics
-        metrics = {"loss": loss}
+        metrics = {"loss": loss, "perplexity": perplexity}
         metrics = jax.lax.pmean(metrics, axis_name="batch")
 
         return state, metrics, new_dropout_rng
@@ -141,10 +143,12 @@ class T5ModelForPreTraining:
         logits = outputs[0]
         labels_onehot = onehot(labels, logits.shape[-1])
         loss = optax.softmax_cross_entropy(logits, labels_onehot).mean()
+        # compute perplexity
+        perplexity = jnp.exp(loss).mean()
         # compute accuracy
         accuracy = jnp.equal(jnp.argmax(logits, axis=-1), labels).mean()
         # prepare validation metrics
-        metrics = {"loss": loss, "accuracy": accuracy}
+        metrics = {"loss": loss, "perplexity": perplexity, "accuracy": accuracy}
         metrics = jax.lax.pmean(metrics, axis_name="batch")
 
         return metrics
