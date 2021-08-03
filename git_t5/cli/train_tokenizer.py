@@ -34,7 +34,7 @@ def register_configs() -> None:
     )
 
 
-@hydra.main(config_path="../../conf", config_name="config_tokenizer")
+@hydra.main(config_path="conf", config_name="config_tokenizer")
 def hydra_entry(cfg: Config) -> None:
     tokenizer = SentencePieceTokenizer(cfg.tokenizer)
     trainer = SentencePieceTrainer(cfg.tokenizer_trainer)

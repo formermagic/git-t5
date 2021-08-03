@@ -49,7 +49,7 @@ def register_configs() -> None:
     )
 
 
-@hydra.main(config_path="../../conf", config_name="config_model")
+@hydra.main(config_path="conf", config_name="config_model")
 def hydra_entry(cfg: Config) -> None:
     logger = WandbLogger(cfg.logger)
     model = T5ModelForPreTraining(cfg.model)
