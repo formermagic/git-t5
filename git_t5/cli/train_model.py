@@ -115,8 +115,8 @@ def register_configs() -> None:
 @hydra.main(config_path="conf", config_name="config_model")
 def hydra_entry(cfg: Config) -> None:
     logger = WandbLogger(cfg.logger)
-    model = T5ModelForPreTraining(cfg.model)
-    data_module = T5DataModule(cfg.data)
+    model = T5ModelForPreTraining.from_config(cfg.model)
+    data_module = T5DataModule.from_config(cfg.data)
 
     trainer = T5Trainer(
         cfg.trainer,
