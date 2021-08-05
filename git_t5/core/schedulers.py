@@ -13,7 +13,7 @@ def inverse_square_root_schedule(
     transition_steps: int,
     transition_begin: int = 0,
 ) -> optax.Schedule:
-    """Constructs a schedule with inverse swuare root transition from init to end value.
+    """Constructs a schedule with inverse square root transition from init to end value.
     Args:
       init_value: initial value for the scalar to be annealed.
       end_value: end value of the scalar to be annealed.
