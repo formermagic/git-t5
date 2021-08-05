@@ -12,6 +12,7 @@ import optax
 from flax import jax_utils
 from flax.serialization import from_bytes, to_bytes
 from flax.training.train_state import TrainState
+from git_t5.core import AutoOptimizer, AutoScheduler, OptimizerConfig
 from git_t5.utils import rank_zero_only
 from omegaconf import MISSING
 from tqdm import tqdm
@@ -50,6 +51,7 @@ class T5Trainer:
     config: T5TrainerConfig
     model: T5ModelForPreTraining
     data_module: T5DataModule
+    optimizer_config: OptimizerConfig
     logger: BaseLogger
     current_epoch: int = 0
     global_step: int = 0
@@ -64,7 +66,7 @@ class T5Trainer:
         train_dataloader = self.data_module.train_dataloader()
         train_samples = len(train_dataloader)
 
-        optimizer, scheduler_fn = self.model.configure_optimizers(self)
+        optimizer, scheduler_fn = self.configure_optimizers()
         state = self.create_state(optimizer, self.config.checkpoint_dir)
         rng = jax.random.PRNGKey(self.model.config.seed)
         dropout_rng = jax.random.split(rng, jax.device_count())
@@ -144,6 +146,23 @@ class T5Trainer:
         )
 
         return metrics
+
+    def configure_optimizers(
+        self,
+    ) -> Tuple[optax.GradientTransformation, optax.Schedule]:
+        def training_steps() -> int:
+            total_steps = len(self.data_module.dataset["train"])
+            batch_size = self.data_module.config.train_batch_size * jax.device_count()
+            num_epochs = self.config.max_epochs
+            num_train_steps = (total_steps // batch_size) * num_epochs
+            return num_train_steps
+
+        cfg = self.optimizer_config
+        cfg.scheduler.train_steps = training_steps()
+        optimizer = AutoOptimizer.from_config(cfg)
+        scheduler = AutoScheduler.from_config(cfg.scheduler)
+
+        return optimizer, scheduler
 
     @rank_zero_only
     def save_checkpoint(self, state: TrainState, save_dir: str) -> None:
