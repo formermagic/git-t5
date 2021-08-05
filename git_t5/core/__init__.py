@@ -1,6 +1,22 @@
 from .data_module import DataModuleConfig, T5DataModule, T5DataModuleConfig
 from .logger import LoggerConfig, WandbLogger, WandbLoggerConfig
 from .model import ModelConfig, T5ModelForPreTraining, T5ModelForPreTrainingConfig
+from .optimizers import (
+    AdafactorConfig,
+    AdagradConfig,
+    AdamConfig,
+    AdamWConfig,
+    AutoOptimizer,
+    OptimizerConfig,
+)
+from .schedulers import (
+    AutoScheduler,
+    ConstantSchedulerConfig,
+    InverseSquareRootSchedulerConfig,
+    LinearSchedulerConfig,
+    PolynomialSchedulerConfig,
+    SchedulerConfig,
+)
 from .tokenizer_model import (
     SentencePieceTokenizer,
     SentencePieceTokenizerConfig,
