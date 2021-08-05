@@ -63,7 +63,6 @@ class LinearSchedulerConfig(SchedulerConfig):
 
 @dataclass
 class InverseSquareRootSchedulerConfig(SchedulerConfig):
-    init_learning_rate: float = 0.0
     warmup_steps: int = 0
 
 
