@@ -4,5 +4,7 @@ defaults:
   - tokenizer_trainer: base_tokenizer_trainer
   - data: huggingface
   - model: huggingface
+  - optimizer: adamw
+  - optimizer/scheduler: linear
   - trainer: huggingface
   - logger: wandb
