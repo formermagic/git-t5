@@ -11,6 +11,19 @@ from git_t5.core import (
     WandbLogger,
     WandbLoggerConfig,
 )
+from git_t5.core.optimizers import (
+    AdafactorConfig,
+    AdagradConfig,
+    AdamConfig,
+    AdamWConfig,
+    OptimizerConfig,
+)
+from git_t5.core.schedulers import (
+    ConstantSchedulerConfig,
+    InverseSquareRootSchedulerConfig,
+    LinearSchedulerConfig,
+    PolynomialSchedulerConfig,
+)
 from hydra.core.config_store import ConfigStore
 
 from .config import DefaultConfig, register_base_configs
@@ -20,8 +33,55 @@ from .config import DefaultConfig, register_base_configs
 class Config(DefaultConfig):
     data: T5DataModuleConfig = T5DataModuleConfig()
     model: T5ModelForPreTrainingConfig = T5ModelForPreTrainingConfig()
+    optimizer: OptimizerConfig = OptimizerConfig()
     trainer: T5TrainerConfig = T5TrainerConfig()
     logger: WandbLoggerConfig = WandbLoggerConfig()
+
+
+def register_optimizers(cs: ConfigStore) -> None:
+    cs.store(
+        group="optimizer",
+        name="base_adam",
+        node=AdamConfig,
+    )
+    cs.store(
+        group="optimizer",
+        name="base_adamw",
+        node=AdamWConfig,
+    )
+    cs.store(
+        group="optimizer",
+        name="base_adafactor",
+        node=AdafactorConfig,
+    )
+    cs.store(
+        group="optimizer",
+        name="base_adagrad",
+        node=AdagradConfig,
+    )
+
+
+def register_schedulers(cs: ConfigStore) -> None:
+    cs.store(
+        group="optimizer/scheduler",
+        name="base_polynomial",
+        node=PolynomialSchedulerConfig,
+    )
+    cs.store(
+        group="optimizer/scheduler",
+        name="base_inverse_square_root",
+        node=InverseSquareRootSchedulerConfig,
+    )
+    cs.store(
+        group="optimizer/scheduler",
+        name="base_linear",
+        node=LinearSchedulerConfig,
+    )
+    cs.store(
+        group="optimizer/scheduler",
+        name="base_constant",
+        node=ConstantSchedulerConfig,
+    )
 
 
 def register_configs() -> None:
@@ -47,6 +107,9 @@ def register_configs() -> None:
         name="base_logger",
         node=WandbLoggerConfig,
     )
+
+    register_optimizers(cs)
+    register_schedulers(cs)
 
 
 @hydra.main(config_path="conf", config_name="config_model")
