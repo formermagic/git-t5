@@ -119,10 +119,11 @@ def hydra_entry(cfg: Config) -> None:
     data_module = T5DataModule.from_config(cfg.data)
 
     trainer = T5Trainer(
-        cfg.trainer,
-        model,
-        data_module,
-        logger,
+        config=cfg.trainer,
+        model=model,
+        data_module=data_module,
+        optimizer_config=cfg.optimizer,
+        logger=logger,
     )
 
     trainer.fit()
