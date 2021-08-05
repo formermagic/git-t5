@@ -4,6 +4,8 @@ from git_t5.core import (
     DataModuleConfig,
     LoggerConfig,
     ModelConfig,
+    OptimizerConfig,
+    SchedulerConfig,
     TokenizerConfig,
     TokenizerTrainerConfig,
     TrainerConfig,
@@ -17,7 +19,9 @@ class DefaultConfig:
     tokenizer_trainer: TokenizerTrainerConfig = TokenizerTrainerConfig()
     model: ModelConfig = ModelConfig()
     data: DataModuleConfig = DataModuleConfig()
+    optimizer: OptimizerConfig = OptimizerConfig()
     trainer: TrainerConfig = TrainerConfig()
+    logger: LoggerConfig = LoggerConfig()
 
 
 def register_base_configs() -> None:
@@ -42,6 +46,16 @@ def register_base_configs() -> None:
         group="data",
         name="base_data",
         node=DataModuleConfig,
+    )
+    cs.store(
+        group="optimizer",
+        name="base_optimizer",
+        node=OptimizerConfig,
+    )
+    cs.store(
+        group="optimizer/scheduler",
+        name="base_scheduler",
+        node=SchedulerConfig,
     )
     cs.store(
         group="trainer",
