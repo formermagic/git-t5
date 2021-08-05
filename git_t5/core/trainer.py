@@ -60,9 +60,6 @@ class T5Trainer:
         self.logger.trainer = self
 
     def fit(self) -> None:
-        self.model.setup()
-        self.data_module.setup()
-
         num_epochs = self.config.max_epochs
         train_dataloader = self.data_module.train_dataloader()
         train_samples = len(train_dataloader)
