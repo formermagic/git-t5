@@ -13,7 +13,6 @@ from transformers import (
     AutoTokenizer,
     FlaxT5ForConditionalGeneration,
     PreTrainedTokenizerBase,
-    SchedulerType,
     T5Config,
 )
 
@@ -57,29 +56,24 @@ class T5ModelForPreTrainingConfig(ModelConfig):
     tokenizer_path: Optional[str] = None
     use_fast_tokenizer: bool = True
     cache_dir: Optional[str] = None
-    learning_rate: float = 5e-5
-    weight_decay: float = 0.0
-    adam_beta1: float = 0.9
-    adam_beta2: float = 0.999
-    adam_epsilon: float = 1e-8
-    adafactor: bool = False
-    scheduler_type: SchedulerType = SchedulerType.LINEAR
-    warmup_steps: int = 0
     dtype: str = "float32"
     seed: int = 42
 
 
+@dataclass
 class T5ModelForPreTraining:
+    config: T5ModelForPreTrainingConfig
     model: FlaxT5ForConditionalGeneration
     tokenizer: PreTrainedTokenizerBase
     trainer: Optional[T5Trainer] = None
 
-    def __init__(self, config: T5ModelForPreTrainingConfig) -> None:
-        self.config = config
-
-    def setup(self) -> None:
-        self.tokenizer = self.load_tokenizer()
-        self.model = self.load_model()
+    @classmethod
+    def from_config(
+        cls, config: T5ModelForPreTrainingConfig
+    ) -> "T5ModelForPreTraining":
+        tokenizer = cls.load_tokenizer(config)
+        model = cls.load_model(config, tokenizer)
+        return T5ModelForPreTraining(config, model, tokenizer)
 
     @partial(
         jax.pmap,
@@ -153,98 +147,69 @@ class T5ModelForPreTraining:
 
         return metrics
 
-    def configure_optimizers(
-        self, trainer: T5Trainer
-    ) -> Tuple[optax.GradientTransformation, optax.Schedule]:
-        # create learning rate schedule
-        dataset = trainer.data_module.dataset
-        total_steps = len(dataset["train"])
-        batch_size = trainer.data_module.config.train_batch_size * jax.device_count()
-        num_epochs = trainer.config.max_epochs
-        num_train_steps = (total_steps // batch_size) * num_epochs
-
-        warmup_fn = optax.linear_schedule(
-            init_value=0.0,
-            end_value=self.config.learning_rate,
-            transition_steps=self.config.warmup_steps,
-        )
-        decay_fn = optax.linear_schedule(
-            init_value=self.config.learning_rate,
-            end_value=0,
-            transition_steps=num_train_steps - self.config.warmup_steps,
-        )
-        scheduler_fn = optax.join_schedules(
-            schedules=[warmup_fn, decay_fn],
-            boundaries=[self.config.warmup_steps],
-        )
-
-        if self.config.adafactor:
-            # we use the default parameters here to initialize adafactor
-            optimizer = optax.adafactor(
-                learning_rate=scheduler_fn,
-            )
-        else:
-            optimizer = optax.adamw(
-                learning_rate=scheduler_fn,
-                b1=self.config.adam_beta1,
-                b2=self.config.adam_beta2,
-                weight_decay=self.config.weight_decay,
-                mask=decay_mask_fn,
-            )
-
-        return optimizer, scheduler_fn
-
-    def load_model(self) -> FlaxT5ForConditionalGeneration:
-        config = self.load_config()
-        if self.config.model_path is not None:
+    @classmethod
+    def load_model(
+        cls,
+        config: T5ModelForPreTrainingConfig,
+        tokenizer: PreTrainedTokenizerBase,
+    ) -> FlaxT5ForConditionalGeneration:
+        if config.model_path is not None:
             model = FlaxT5ForConditionalGeneration.from_pretrained(
-                self.config.model_path,
+                config.model_path,
                 config=config,
-                seed=self.config.seed,
-                dtype=getattr(jnp, self.config.dtype),
+                seed=config.seed,
+                dtype=getattr(jnp, config.dtype),
             )
         else:
             model = FlaxT5ForConditionalGeneration(
-                config,
-                seed=self.config.seed,
-                dtype=getattr(jnp, self.config.dtype),
+                cls.load_config(config, tokenizer),
+                seed=config.seed,
+                dtype=getattr(jnp, config.dtype),
             )
 
         return model
 
-    def load_config(self) -> T5Config:
-        vocab_size = len(self.tokenizer)  # type: ignore
-        if self.config.config_name is not None:
-            config = T5Config.from_pretrained(
-                self.config.config_name,
-                cache_dir=self.config.cache_dir,
+    @classmethod
+    def load_config(
+        cls,
+        config: T5ModelForPreTrainingConfig,
+        tokenizer: PreTrainedTokenizerBase,
+    ) -> T5Config:
+        vocab_size = len(tokenizer)  # type: ignore
+        if config.config_name is not None:
+            model_config = T5Config.from_pretrained(
+                config.config_name,
+                cache_dir=config.cache_dir,
                 vocab_size=vocab_size,
             )
-        elif self.config.model_path is not None:
-            config = T5Config.from_pretrained(
-                self.config.model_path,
-                cache_dir=self.config.cache_dir,
+        elif config.model_path is not None:
+            model_config = T5Config.from_pretrained(
+                config.model_path,
+                cache_dir=config.cache_dir,
                 vocab_size=vocab_size,
             )
         else:
-            config = CONFIG_MAPPING[self.config.model_type]()  # type: ignore
+            model_config = CONFIG_MAPPING[config.model_type]()  # type: ignore
 
         # make sure the type matches the config
-        assert isinstance(config, T5Config)
-        return config
+        assert isinstance(model_config, T5Config)
+        return model_config
 
-    def load_tokenizer(self) -> PreTrainedTokenizerBase:
-        if self.config.tokenizer_path is not None:
+    @classmethod
+    def load_tokenizer(
+        cls, config: T5ModelForPreTrainingConfig
+    ) -> PreTrainedTokenizerBase:
+        if config.tokenizer_path is not None:
             tokenizer = AutoTokenizer.from_pretrained(
-                self.config.tokenizer_path,
-                cache_dir=self.config.cache_dir,
-                use_fast=self.config.use_fast_tokenizer,
+                config.tokenizer_path,
+                cache_dir=config.cache_dir,
+                use_fast=config.use_fast_tokenizer,
             )
-        elif self.config.model_path is not None:
+        elif config.model_path is not None:
             tokenizer = AutoTokenizer.from_pretrained(
-                self.config.model_path,
-                cache_dir=self.config.cache_dir,
-                use_fast=self.config.use_fast_tokenizer,
+                config.model_path,
+                cache_dir=config.cache_dir,
+                use_fast=config.use_fast_tokenizer,
             )
         else:
             raise ValueError(
