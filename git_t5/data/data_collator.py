@@ -2,7 +2,6 @@ from dataclasses import dataclass
 from typing import Dict, List
 
 import numpy as np
-from jax import ops
 from transformers import PreTrainedTokenizerBase
 
 from .data_preprocessing import (
@@ -19,13 +18,13 @@ def shift_tokens_right(
     """
     Shift input ids one token to the right.
     """
-    shifted_input_ids = np.roll(input_ids, 1, axis=-1)
-    shifted_input_ids = ops.index_update(
-        shifted_input_ids, (..., 0), decoder_start_token_id
-    )
-    # replace possible -100 values in labels by `pad_token_id`
+    shifted_input_ids = np.zeros_like(input_ids)
+    shifted_input_ids[..., 1:] = input_ids[..., :-1]
+    shifted_input_ids[..., 0] = decoder_start_token_id
     shifted_input_ids = np.where(
-        shifted_input_ids == -100, pad_token_id, shifted_input_ids
+        shifted_input_ids == -100,
+        pad_token_id,
+        shifted_input_ids,
     )
 
     return shifted_input_ids
@@ -172,9 +171,7 @@ class DataCollatorForT5MLM:
             np.random.shuffle(mask_indices)
             first_in_segment = np.pad(mask_indices, [[1, 0]])
             segment_id = np.cumsum(first_in_segment)
-            segment_length = np.asarray(
-                ops.segment_sum(np.ones_like(segment_id), segment_id)
-            )
+            _, segment_length = np.unique(segment_id, return_counts=True)
             return segment_length
 
         noise_span_lengths = _random_segmentation(num_noise_tokens, num_noise_spans)
