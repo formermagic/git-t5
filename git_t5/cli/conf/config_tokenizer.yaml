@@ -4,5 +4,7 @@ defaults:
   - tokenizer_trainer: sentencepiece
   - data: base_data
   - model: base_model
+  - optimizer: base_optimizer
+  - optimizer/scheduler: base_scheduler
   - trainer: base_trainer
   - logger: base_logger
