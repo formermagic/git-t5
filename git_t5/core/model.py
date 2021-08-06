@@ -21,6 +21,8 @@ if TYPE_CHECKING:
 else:
     T5Trainer = Any
 
+MAX_VALUE = (2 << 30) - 1
+
 
 def decay_mask_fn(params: Dict[str, Any]) -> Dict[str, Any]:
     """
@@ -109,7 +111,7 @@ class T5ModelForPreTraining:
         grad_fn = jax.value_and_grad(loss_fn)
         loss, grads = grad_fn(state.params)
         # compute perplexity
-        perplexity = jnp.exp(loss)
+        perplexity = jnp.exp(loss).clip(0, MAX_VALUE)
         # apply computed gradients
         grads = jax.lax.pmean(grads, "batch")
         state = state.apply_gradients(grads=grads)
@@ -138,7 +140,7 @@ class T5ModelForPreTraining:
         labels_onehot = onehot(labels, logits.shape[-1])
         loss = optax.softmax_cross_entropy(logits, labels_onehot).mean()
         # compute perplexity
-        perplexity = jnp.exp(loss).mean()
+        perplexity = jnp.exp(loss).mean().clip(0, MAX_VALUE)
         # compute accuracy
         accuracy = jnp.equal(jnp.argmax(logits, axis=-1), labels).mean()
         # prepare validation metrics
