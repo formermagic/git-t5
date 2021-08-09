@@ -1,7 +1,9 @@
 import json
 import os
 import time
+from collections import defaultdict
 from dataclasses import dataclass
+from functools import partial
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
 import jax
@@ -115,20 +117,18 @@ class T5Trainer:
                     train_metrics = []
 
                 if current_step % self.config.eval_steps == 0:
-                    metrics = self.validate(state)
-                    self.log_metrics(
-                        metrics,
-                        step=self.global_step,
-                        prefix="valid",
-                    )
+                    valid_metrics = self.validate(state)
+                    valid_metrics = self.prepare_metrics(valid_metrics, prefix="valid")
+                    self.logger.log_metrics(valid_metrics, step=self.global_step)
 
                 if current_step % self.config.save_steps == 0:
                     self.save_checkpoint(state, self.config.output_dir)
 
-    def validate(self, state: TrainState) -> List[Dict[str, jnp.ndarray]]:
+    def validate(self, state: TrainState) -> Dict[str, jnp.ndarray]:
         valid_dataloader = self.data_module.valid_dataloader()
         valid_samples = len(valid_dataloader)
-        valid_metrics = []
+        running_metrics = defaultdict(partial(jnp.array, 0, dtype=jnp.float32))
+        current_step = 0
 
         for batch in tqdm(
             valid_dataloader,
@@ -137,9 +137,15 @@ class T5Trainer:
         ):
             # accumulate validation metrics
             metrics = self.model.valid_step(state, batch)
-            valid_metrics.append(metrics)
+            for name, value in metrics.items():
+                running_metrics[name] += jax_utils.unreplicate(value)
+            current_step += 1
 
-        return valid_metrics
+        metrics = {
+            name: (value / current_step) for name, value in running_metrics.items()
+        }
+
+        return metrics
 
     def configure_optimizers(
         self,
