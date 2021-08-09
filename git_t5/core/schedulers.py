@@ -130,7 +130,7 @@ def inverse_square_root_scheduler(
         raise ValueError("`learning_rate` must be specified.")
 
     warmup_fn = optax.linear_schedule(
-        init_value=config.learning_rate,
+        init_value=0.0,
         end_value=config.learning_rate,
         transition_steps=config.warmup_steps,
     )
