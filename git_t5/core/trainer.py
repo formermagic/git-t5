@@ -98,7 +98,7 @@ class T5Trainer:
                 if current_step % self.config.logging_steps == 0:
                     state_step = jax_utils.unreplicate(state.step)
                     train_lr = scheduler_fn(state_step - 1)
-                    train_time += time.time() - train_start_time
+                    train_time = time.time() - train_start_time
 
                     metrics = self.prepare_metrics(
                         running_metrics,
