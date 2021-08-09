@@ -97,6 +97,7 @@ class T5Trainer:
                     train_time = time.time() - train_start_time
 
                     common_metrics = {
+                        "epoch": epoch,
                         "step": state_step.item(),
                         "train_lr": train_lr.item(),  # type: ignore
                         "train_time": train_time,
