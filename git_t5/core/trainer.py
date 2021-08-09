@@ -1,10 +1,8 @@
 import json
 import os
 import time
-from collections import defaultdict
 from dataclasses import dataclass
-from functools import partial
-from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
 import jax
 import jax.numpy as jnp
@@ -74,7 +72,7 @@ class T5Trainer:
         train_time = 0
 
         for epoch in range(num_epochs):
-            running_metrics = defaultdict(partial(jnp.array, 0, dtype=jnp.float32))
+            train_metrics = []
             current_step = 0
             train_start_time = time.time()
             self.current_epoch = epoch
@@ -89,9 +87,7 @@ class T5Trainer:
                 )
 
                 # accumulate train metrics
-                for name, value in metrics.items():
-                    running_metrics[name] += jax_utils.unreplicate(value)
-
+                train_metrics.append(metrics)
                 current_step += 1
                 self.global_step += 1
 
@@ -100,33 +96,38 @@ class T5Trainer:
                     train_lr = scheduler_fn(state_step - 1)
                     train_time = time.time() - train_start_time
 
-                    metrics = self.prepare_metrics(
-                        running_metrics,
-                        step=current_step,
-                        prefix="train",
-                    )
-
-                    metrics = {
+                    common_metrics = {
                         "step": state_step.item(),
                         "train_lr": train_lr.item(),  # type: ignore
                         "train_time": train_time,
-                        **metrics,
                     }
 
-                    self.logger.log_metrics(metrics, step=self.global_step)
+                    # write train metrics
+                    self.log_metrics(
+                        train_metrics,
+                        step=self.global_step,
+                        prefix="train",
+                    )
+                    # write common metrics
+                    self.logger.log_metrics(common_metrics, step=self.global_step)
+                    # clear train metrics buffer
+                    train_metrics = []
 
                 if current_step % self.config.eval_steps == 0:
                     metrics = self.validate(state)
-                    self.logger.log_metrics(metrics, step=self.global_step)
+                    self.log_metrics(
+                        metrics,
+                        step=self.global_step,
+                        prefix="valid",
+                    )
 
                 if current_step % self.config.save_steps == 0:
                     self.save_checkpoint(state, self.config.output_dir)
 
-    def validate(self, state: TrainState) -> Dict[str, float]:
+    def validate(self, state: TrainState) -> List[Dict[str, jnp.ndarray]]:
         valid_dataloader = self.data_module.valid_dataloader()
         valid_samples = len(valid_dataloader)
-        running_metrics = defaultdict(partial(jnp.array, 0, dtype=jnp.float32))
-        current_step = 0
+        valid_metrics = []
 
         for batch in tqdm(
             valid_dataloader,
@@ -135,17 +136,9 @@ class T5Trainer:
         ):
             # accumulate validation metrics
             metrics = self.model.valid_step(state, batch)
-            for name, value in metrics.items():
-                running_metrics[name] += jax_utils.unreplicate(value)
-            current_step += 1
+            valid_metrics.append(metrics)
 
-        metrics = self.prepare_metrics(
-            running_metrics,
-            step=current_step,
-            prefix="valid",
-        )
-
-        return metrics
+        return valid_metrics
 
     def configure_optimizers(
         self,
@@ -247,12 +240,20 @@ class T5Trainer:
         state = jax_utils.replicate(state)
         return state
 
+    def log_metrics(
+        self,
+        metrics: List[Dict[str, jnp.ndarray]],
+        step: int,
+        prefix: str,
+    ) -> None:
+        for idx, metric in enumerate(metrics):
+            current_step = step - len(metrics) + idx + 1
+            metric = self.prepare_metrics(metric, prefix)
+            self.logger.log_metrics(metric, step=current_step)
+
     def prepare_metrics(
         self,
         metrics: Dict[str, jnp.ndarray],
-        step: int,
         prefix: str,
     ) -> Dict[str, float]:
-        return {
-            f"{prefix}_{name}": (value / step).item() for name, value in metrics.items()
-        }
+        return {f"{prefix}_{name}": value.item() for name, value in metrics.items()}
