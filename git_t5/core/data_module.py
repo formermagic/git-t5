@@ -32,6 +32,23 @@ def tokenize_fn(
     return wrap_fn
 
 
+def select_subset(
+    dataset: datasets.Dataset,
+    size: Union[float, int],
+    seed: Optional[int] = None,
+) -> datasets.Dataset:
+    num_samples: int
+    if isinstance(size, int) or size > 1:
+        num_samples = int(size)
+    else:
+        num_samples = int(len(dataset) * size)
+
+    rng = np.random.default_rng(seed)
+    indices = rng.integers(0, len(dataset), (num_samples,))
+
+    return dataset.select(indices)
+
+
 @dataclass
 class DataModuleConfig:
     pass
@@ -57,6 +74,8 @@ class T5DataModuleConfig(DataModuleConfig):
     mean_noise_span_length: float = 3.0
     decoder_start_token_id: int = MISSING
     seed: int = MISSING  # derive from model config
+    limit_train_size: float = 1.0
+    limit_valid_size: float = 1.0
 
 
 @dataclass
@@ -202,6 +221,20 @@ class T5DataModule:
                 dataset["validation"] = dataset.pop("test")
         else:
             raise ValueError("`dataset_name` or `dataset_path` must be specified.")
+
+        if config.limit_train_size != 1:
+            dataset["train"] = select_subset(
+                dataset["train"],
+                config.limit_train_size,
+                config.seed,
+            )
+
+        if config.limit_valid_size != 1:
+            dataset["validation"] = select_subset(
+                dataset["validation"],
+                config.limit_valid_size,
+                config.seed,
+            )
 
         return dataset
 
