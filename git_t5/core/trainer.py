@@ -1,16 +1,15 @@
 import json
 import os
 import time
-from collections import defaultdict
 from dataclasses import dataclass
-from functools import partial
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
 
 import jax
 import jax.numpy as jnp
 import optax
 from flax import jax_utils
 from flax.serialization import from_bytes, to_bytes
+from flax.training.common_utils import get_metrics
 from flax.training.train_state import TrainState
 from git_t5.core import AutoOptimizer, AutoScheduler, OptimizerConfig
 from git_t5.utils import rank_zero_only
@@ -94,6 +93,7 @@ class T5Trainer:
                 self.global_step += 1
 
                 if current_step % self.config.logging_steps == 0:
+                    train_metrics = jax_utils.unreplicate(train_metrics)
                     state_step = jax_utils.unreplicate(state.step)
                     train_lr = scheduler_fn(state_step - 1)
                     train_time = time.time() - train_start_time
