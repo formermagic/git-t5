@@ -74,7 +74,6 @@ class T5Trainer:
 
         for epoch in range(num_epochs):
             train_metrics = []
-            current_step = 0
             train_start_time = time.time()
             self.current_epoch = epoch
 
@@ -89,10 +88,9 @@ class T5Trainer:
 
                 # accumulate train metrics
                 train_metrics.append(metrics)
-                current_step += 1
                 self.global_step += 1
 
-                if current_step % self.config.logging_steps == 0:
+                if self.global_step % self.config.logging_steps == 0:
                     train_metrics = jax_utils.unreplicate(train_metrics)
                     state_step = jax_utils.unreplicate(state.step)
                     train_lr = scheduler_fn(state_step - 1)
@@ -122,10 +120,10 @@ class T5Trainer:
                     # clear train metrics buffer
                     train_metrics = []
 
-                if current_step % self.config.eval_steps == 0:
+                if self.global_step % self.config.eval_steps == 0:
                     self.validate(state)
 
-                if current_step % self.config.save_steps == 0:
+                if self.global_step % self.config.save_steps == 0:
                     self.save_checkpoint(state, self.config.output_dir)
 
     def validate(self, state: TrainState) -> None:
