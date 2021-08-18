@@ -249,14 +249,18 @@ class T5Trainer:
 
     def log_metrics(
         self,
-        metrics: List[Dict[str, jnp.ndarray]],
+        metrics: Union[List[Dict[str, float]], Dict[str, float]],
         step: int,
-        prefix: str,
+        prefix: Optional[str] = None,
     ) -> None:
-        for idx, metric in enumerate(metrics):
-            current_step = step - len(metrics) + idx + 1
-            metric = self.prepare_metrics(metric, prefix)
-            self.logger.log_metrics(metric, step=current_step)
+        device_metrics = metrics
+        if not isinstance(device_metrics, list):
+            device_metrics = [device_metrics]
+
+        for idx, scalar_metrics in enumerate(device_metrics):
+            current_step = step - len(device_metrics) + idx + 1
+            scalar_metrics = self.prepare_metrics(scalar_metrics, prefix)
+            self.logger.log_metrics(scalar_metrics, step=current_step)
 
     def prepare_metrics(
         self,
