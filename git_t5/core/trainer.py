@@ -260,7 +260,8 @@ class T5Trainer:
 
     def prepare_metrics(
         self,
-        metrics: Dict[str, jnp.ndarray],
-        prefix: str,
+        metrics: Dict[str, float],
+        prefix: Optional[str] = None,
     ) -> Dict[str, float]:
-        return {f"{prefix}_{name}": value.item() for name, value in metrics.items()}
+        prefix = prefix + "_" if prefix else ""
+        return {f"{prefix}{name}": value for name, value in metrics.items()}
