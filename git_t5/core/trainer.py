@@ -117,35 +117,32 @@ class T5Trainer:
                     train_metrics = []
 
                 if current_step % self.config.eval_steps == 0:
-                    valid_metrics = self.validate(state)
-                    valid_metrics = self.prepare_metrics(valid_metrics, prefix="valid")
-                    self.logger.log_metrics(valid_metrics, step=self.global_step)
+                    self.validate(state)
 
                 if current_step % self.config.save_steps == 0:
                     self.save_checkpoint(state, self.config.output_dir)
 
-    def validate(self, state: TrainState) -> Dict[str, jnp.ndarray]:
+    def validate(self, state: TrainState) -> None:
         valid_dataloader = self.data_module.valid_dataloader()
         valid_samples = len(valid_dataloader)
-        running_metrics = defaultdict(partial(jnp.array, 0, dtype=jnp.float32))
-        current_step = 0
+        valid_metrics = []
 
         for batch in tqdm(
             valid_dataloader,
             total=valid_samples,
             desc="Validating...",
         ):
-            # accumulate validation metrics
             metrics = self.model.valid_step(state, batch)
-            for name, value in metrics.items():
-                running_metrics[name] += jax_utils.unreplicate(value)
-            current_step += 1
+            valid_metrics.append(metrics)
 
-        metrics = {
-            name: (value / current_step) for name, value in running_metrics.items()
-        }
+        valid_metrics = get_metrics(valid_metrics)
+        valid_metrics = jax.tree_map(jnp.mean, valid_metrics)
 
-        return metrics
+        self.log_metrics(
+            valid_metrics,
+            step=self.global_step,
+            prefix="valid",
+        )
 
     def configure_optimizers(
         self,
