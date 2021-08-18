@@ -100,8 +100,8 @@ class T5Trainer:
 
                     common_metrics = {
                         "epoch": epoch,
-                        "step": state_step.item(),
-                        "train_lr": train_lr.item(),  # type: ignore
+                        "step": state_step,
+                        "train_lr": train_lr,
                         "train_time": train_time,
                     }
 
@@ -111,8 +111,14 @@ class T5Trainer:
                         step=self.global_step,
                         prefix="train",
                     )
+
                     # write common metrics
-                    self.logger.log_metrics(common_metrics, step=self.global_step)
+                    self.log_metrics(
+                        common_metrics,
+                        step=self.global_step,
+                        prefix=None,
+                    )
+
                     # clear train metrics buffer
                     train_metrics = []
 
