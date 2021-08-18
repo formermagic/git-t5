@@ -71,10 +71,10 @@ class T5Trainer:
         dropout_rng = jax.random.split(rng, jax.device_count())
 
         train_time = 0
+        train_start_time = time.time()
+        train_metrics = []
 
         for epoch in range(num_epochs):
-            train_metrics = []
-            train_start_time = time.time()
             self.current_epoch = epoch
 
             for batch in tqdm(
@@ -88,6 +88,8 @@ class T5Trainer:
 
                 # accumulate train metrics
                 train_metrics.append(metrics)
+
+                # increase the global train step
                 self.global_step += 1
 
                 if self.global_step % self.config.logging_steps == 0:
