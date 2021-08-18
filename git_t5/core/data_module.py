@@ -27,7 +27,11 @@ def tokenize_fn(
     def wrap_fn(
         examples: Dict[str, List[str]]
     ) -> Dict[str, Union[List[List[int]], np.ndarray]]:
-        return tokenizer(examples[column], return_attention_mask=False)  # type: ignore
+        return tokenizer(
+            examples[column],
+            truncation=False,
+            return_attention_mask=False,
+        )  # type: ignore
 
     return wrap_fn
 
