@@ -3,7 +3,6 @@ from dataclasses import dataclass
 
 import hydra
 from git_t5.core import (
-    SentencePieceTokenizer,
     SentencePieceTokenizerConfig,
     SentencePieceTrainer,
     SentencePieceTrainerConfig,
@@ -15,7 +14,6 @@ from .config import DefaultConfig, register_base_configs
 
 @dataclass
 class Config(DefaultConfig):
-    tokenizer: SentencePieceTokenizerConfig = SentencePieceTokenizerConfig()
     tokenizer_trainer: SentencePieceTrainerConfig = SentencePieceTrainerConfig()
 
 
@@ -23,22 +21,21 @@ def register_configs() -> None:
     cs = ConfigStore.instance()
     cs.store(name="default", node=Config)
     cs.store(
-        group="tokenizer",
-        name="base_tokenizer",
-        node=SentencePieceTokenizerConfig,
-    )
-    cs.store(
         group="tokenizer_trainer",
         name="base_tokenizer_trainer",
         node=SentencePieceTrainerConfig,
+    )
+    cs.store(
+        group="tokenizer_trainer/tokenizer",
+        name="base_tokenizer",
+        node=SentencePieceTokenizerConfig,
     )
 
 
 @hydra.main(config_path="conf", config_name="config_tokenizer")
 def hydra_entry(cfg: Config) -> None:
-    tokenizer = SentencePieceTokenizer(cfg.tokenizer)
-    trainer = SentencePieceTrainer(cfg.tokenizer_trainer)
-    trainer.train(tokenizer)
+    trainer = SentencePieceTrainer.from_config(cfg.tokenizer_trainer)
+    trainer.train()
 
 
 def main() -> None:
