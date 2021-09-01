@@ -4,5 +4,5 @@ from .dataset import (
     LocalDatasetConfig,
     MultitaskDatasetConfig,
 )
-from .tokenizer import PreTrainedTokenizer, PreTrainedTokenizerConfig
+from .tokenizer import PreTrainedTokenizerConfig
 from .training import TrainingConfig

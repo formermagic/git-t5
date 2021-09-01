@@ -3,7 +3,6 @@ from .configs import (
     HFDatasetConfig,
     LocalDatasetConfig,
     MultitaskDatasetConfig,
-    PreTrainedTokenizer,
     PreTrainedTokenizerConfig,
     TrainingConfig,
 )
