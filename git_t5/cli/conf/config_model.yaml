@@ -1,7 +1,9 @@
 defaults:
   - default
-  - tokenizer: base_tokenizer
   - tokenizer_trainer: base_tokenizer_trainer
+  - tokenizer_trainer/tokenizer: base_tokenizer
+  - tokenizer: huggingface
+  - dataset: huggingface
   - data: huggingface
   - model: huggingface
   - optimizer: adamw

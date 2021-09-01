@@ -1,7 +1,9 @@
 defaults:
   - default
-  - tokenizer: base_tokenizer
   - tokenizer_trainer: base_tokenizer_trainer
+  - tokenizer_trainer/tokenizer: base_tokenizer
+  - tokenizer: base_pretrained_tokenizer
+  - dataset: base_dataset
   - data: base_data
   - model: base_model
   - optimizer: base_optimizer
