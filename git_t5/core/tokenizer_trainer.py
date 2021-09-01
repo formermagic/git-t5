@@ -8,7 +8,11 @@ from omegaconf import MISSING
 from tokenizers.implementations.base_tokenizer import BaseTokenizer
 from transformers import T5TokenizerFast
 
-from .tokenizer_model import SentencePieceTokenizer
+from .tokenizer_model import (
+    SentencePieceTokenizer,
+    SentencePieceTokenizerConfig,
+    TokenizerConfig,
+)
 
 
 def batch_iterator(
@@ -35,6 +39,7 @@ def save(tokenizer: BaseTokenizer, output_path: Union[str, os.PathLike]) -> str:
 @dataclass
 class TokenizerTrainerConfig:
     save_directory: str = MISSING
+    tokenizer: TokenizerConfig = TokenizerConfig()
 
 
 @dataclass
@@ -42,38 +47,47 @@ class SentencePieceTrainerConfig(TokenizerTrainerConfig):
     dataset_column: str = MISSING
     dataset_path: Optional[str] = None
     dataset_files: Optional[List[str]] = None
+    tokenizer: SentencePieceTokenizerConfig = SentencePieceTokenizerConfig()
 
 
+@dataclass
 class SentencePieceTrainer:
-    def __init__(self, config: SentencePieceTrainerConfig) -> None:
-        self.config = config
+    config: SentencePieceTrainerConfig
+    tokenizer: SentencePieceTokenizer
 
-    def train(self, tokenizer: SentencePieceTokenizer) -> None:
+    @classmethod
+    def from_config(cls, config: SentencePieceTrainerConfig) -> "SentencePieceTrainer":
+        tokenizer = SentencePieceTokenizer(config.tokenizer)
+        return SentencePieceTrainer(config, tokenizer)
+
+    def train(self) -> None:
         if self.config.dataset_path:
             dataset = datasets.load_from_disk(self.config.dataset_path)
             if isinstance(dataset, datasets.DatasetDict):
                 dataset = dataset["train"]
 
             dataset_iter = batch_iterator(dataset, self.config.dataset_column)
-            tokenizer.train_from_iterator(dataset_iter)
+            self.tokenizer.train_from_iterator(dataset_iter)
         elif self.config.dataset_files:
-            tokenizer.train_from_files(self.config.dataset_files)
+            self.tokenizer.train_from_files(self.config.dataset_files)
         else:
             raise ValueError("`dataset_path` or `dataset_files` must be specified.")
 
         # save pre-trained rust tokenizer
-        tokenizer_file = save(tokenizer, self.config.save_directory)
+        tokenizer_file = save(self.tokenizer, self.config.save_directory)
 
         # create a fast tokenizer wrapper around rust backend
         tokenizer_fast = T5TokenizerFast(
             vocab_file=None,
             tokenizer_file=tokenizer_file,
-            model_max_length=tokenizer.config.model_max_length,
+            model_max_length=self.tokenizer.config.model_max_length,
         )
 
         # concatenate extra_ids and user defined additional_special_tokens
+        special_tokens = self.tokenizer.config.additional_special_tokens
         additional_special_tokens = tokenizer_fast.additional_special_tokens
-        additional_special_tokens += list(tokenizer.config.additional_special_tokens)
+        additional_special_tokens += list(special_tokens)
+
         tokenizer_fast.add_special_tokens(
             {"additional_special_tokens": additional_special_tokens}  # type: ignore
         )
