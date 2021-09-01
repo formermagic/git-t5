@@ -10,20 +10,21 @@ gt5-train-model = 'git_t5.cli.train_model:main'
 
 [tool.poetry.dependencies]
 python = "^3.7"
-jax = "^0.2.18"
-jaxlib = "^0.1.69"
+jax = "^0.2.19"
 flax = "^0.3.4"
 optax = "^0.0.9"
-transformers = "^4.9.0"
-datasets = "^1.10.1"
-hydra-core = "^1.1.0"
-wandb = "^0.11.0"
+torch = "^1.9.0"
+transformers = "^4.10.0"
+datasets = "^1.11.0"
+hydra-core = "^1.1.1"
+more-itertools = "^8.8.0"
+wandb = "^0.12.1"
 sacrebleu = "^1.5.1"
-typing-extensions = { version = "^3.7.4", python = "<3.8" }
+typing-extensions = { version = "^3.10.0.2", python = "<3.8" }
 
 [tool.poetry.dev-dependencies]
-black = "^21.6b0"
-pylint = "^2.9.3"
+black = "^21.8b0"
+pylint = "^2.10.2"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
