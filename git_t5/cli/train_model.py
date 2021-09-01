@@ -150,7 +150,6 @@ def hydra_entry(cfg: Config) -> None:
         config=cfg,
         model=model,
         data_module=data_module,
-        optimizer_config=cfg.optimizer,
         logger=logger,
     )
 
