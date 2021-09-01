@@ -11,7 +11,7 @@ from flax import jax_utils
 from flax.serialization import from_bytes, to_bytes
 from flax.training.common_utils import get_metrics
 from flax.training.train_state import TrainState
-from git_t5.core import AutoOptimizer, AutoScheduler, OptimizerConfig
+from git_t5.core import AutoOptimizer, AutoScheduler
 from git_t5.utils import rank_zero_only
 from tqdm import tqdm
 
@@ -45,7 +45,6 @@ class T5Trainer:
     config: Config
     model: T5ModelForPreTraining
     data_module: T5DataModule
-    optimizer_config: OptimizerConfig
     logger: BaseLogger
     current_epoch: int = 0
     global_step: int = 0
@@ -156,7 +155,7 @@ class T5Trainer:
             num_train_steps = (total_steps // total_batch_size) * num_epochs
             return num_train_steps
 
-        cfg = self.optimizer_config
+        cfg = self.config.optimizer
         cfg.scheduler.train_steps = training_steps()
         optimizer = AutoOptimizer.from_config(cfg)
         scheduler = AutoScheduler.from_config(cfg.scheduler)
