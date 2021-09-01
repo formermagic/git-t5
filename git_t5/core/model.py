@@ -17,8 +17,10 @@ from transformers import (
 )
 
 if TYPE_CHECKING:
-    from .trainer import T5Trainer
+    from git_t5.cli.train_model import Config
+    from git_t5.core.trainer import T5Trainer
 else:
+    Config = Any
     T5Trainer = Any
 
 MAX_VALUE = (2 << 30) - 1
@@ -55,24 +57,18 @@ class T5ModelForPreTrainingConfig(ModelConfig):
     model_path: Optional[str] = None
     model_type: Optional[str] = None
     config_name: Optional[str] = None
-    tokenizer_path: Optional[str] = None
-    use_fast_tokenizer: bool = True
-    cache_dir: Optional[str] = None
     dtype: str = "float32"
-    seed: int = 42
 
 
 @dataclass
 class T5ModelForPreTraining:
-    config: T5ModelForPreTrainingConfig
+    config: Config
     model: FlaxT5ForConditionalGeneration
     tokenizer: PreTrainedTokenizerBase
     trainer: Optional[T5Trainer] = None
 
     @classmethod
-    def from_config(
-        cls, config: T5ModelForPreTrainingConfig
-    ) -> "T5ModelForPreTraining":
+    def from_config(cls, config: Config) -> "T5ModelForPreTraining":
         tokenizer = cls.load_tokenizer(config)
         model = cls.load_model(config, tokenizer)
         return T5ModelForPreTraining(config, model, tokenizer)
@@ -152,21 +148,21 @@ class T5ModelForPreTraining:
     @classmethod
     def load_model(
         cls,
-        config: T5ModelForPreTrainingConfig,
+        config: Config,
         tokenizer: PreTrainedTokenizerBase,
     ) -> FlaxT5ForConditionalGeneration:
-        if config.model_path is not None:
+        if config.model.model_path is not None:
             model = FlaxT5ForConditionalGeneration.from_pretrained(
-                config.model_path,
+                config.model.model_path,
                 config=config,
-                seed=config.seed,
-                dtype=getattr(jnp, config.dtype),
+                seed=config.training.seed,
+                dtype=getattr(jnp, config.model.dtype),
             )
         else:
             model = FlaxT5ForConditionalGeneration(
                 cls.load_config(config, tokenizer),
-                seed=config.seed,
-                dtype=getattr(jnp, config.dtype),
+                seed=config.training.seed,
+                dtype=getattr(jnp, config.model.dtype),
             )
 
         return model
@@ -174,20 +170,20 @@ class T5ModelForPreTraining:
     @classmethod
     def load_config(
         cls,
-        config: T5ModelForPreTrainingConfig,
+        config: Config,
         tokenizer: PreTrainedTokenizerBase,
     ) -> T5Config:
         vocab_size = len(tokenizer)  # type: ignore
-        if config.config_name is not None:
+        if config.model.config_name is not None:
             model_config = T5Config.from_pretrained(
-                config.config_name,
-                cache_dir=config.cache_dir,
+                config.model.config_name,
+                cache_dir=config.training.cache_dir,
                 vocab_size=vocab_size,
             )
-        elif config.model_path is not None:
+        elif config.model.model_path is not None:
             model_config = T5Config.from_pretrained(
-                config.model_path,
-                cache_dir=config.cache_dir,
+                config.model.model_path,
+                cache_dir=config.training.cache_dir,
                 vocab_size=vocab_size,
             )
         else:
@@ -198,26 +194,11 @@ class T5ModelForPreTraining:
         return model_config
 
     @classmethod
-    def load_tokenizer(
-        cls, config: T5ModelForPreTrainingConfig
-    ) -> PreTrainedTokenizerBase:
-        if config.tokenizer_path is not None:
-            tokenizer = AutoTokenizer.from_pretrained(
-                config.tokenizer_path,
-                cache_dir=config.cache_dir,
-                use_fast=config.use_fast_tokenizer,
-            )
-        elif config.model_path is not None:
-            tokenizer = AutoTokenizer.from_pretrained(
-                config.model_path,
-                cache_dir=config.cache_dir,
-                use_fast=config.use_fast_tokenizer,
-            )
-        else:
-            raise ValueError(
-                "You are instantiating a new tokenizer from scratch. This is not supported by this script. "
-                "You can do it from another script, save it, and load it from here, using `tokenizer_path`."
-            )
+    def load_tokenizer(cls, config: Config) -> PreTrainedTokenizerBase:
+        tokenizer = AutoTokenizer.from_pretrained(
+            config.tokenizer.tokenizer_path,
+            cache_dir=config.training.cache_dir,
+            use_fast=config.tokenizer.use_fast,
+        )
 
-        assert isinstance(tokenizer, PreTrainedTokenizerBase)
         return tokenizer
