@@ -42,7 +42,7 @@ def select_random_chunk(
     seed: Optional[int] = None,
     uniform_random_start: bool = False,
     load_from_cache_file: bool = True,
-    num_workers: Optional[int] = None,
+    num_proc: Optional[int] = None,
 ) -> Dataset:
     if max_sequence_length is None:
         raise ValueError("Must specify `max_sequence_length`.")
@@ -70,12 +70,12 @@ def select_random_chunk(
     dataset = dataset.filter(
         lambda x: np.not_equal(np.size(x[feature_key]), 0).item(),
         load_from_cache_file=load_from_cache_file,
-        num_proc=num_workers,
+        num_proc=num_proc,
     )
     dataset = dataset.map(
         map_fn,
         load_from_cache_file=load_from_cache_file,
-        num_proc=num_workers,
+        num_proc=num_proc,
     )
 
     return dataset
@@ -91,7 +91,7 @@ def split_tokens(
     seed: Optional[int] = None,
     drop_last: bool = True,
     load_from_cache_file: bool = True,
-    num_workers: Optional[int] = None,
+    num_proc: Optional[int] = None,
 ) -> Dataset:
     def map_fn(
         features: Dict[str, List[Union[List[int], np.ndarray]]]
@@ -144,7 +144,7 @@ def split_tokens(
         batch_size=batch_size,
         remove_columns=column_names(dataset),
         load_from_cache_file=load_from_cache_file,
-        num_proc=num_workers,
+        num_proc=num_proc,
     )
 
     return dataset
@@ -188,14 +188,14 @@ def prepare_dataset(
     batch_size: int,
     drop_last: bool = True,
     load_from_cache_file: bool = True,
-    num_workers: Optional[int] = None,
+    num_proc: Optional[int] = None,
 ) -> Dataset:
     ds = dataset.map(
         tokenize_fn,
         batched=False,
         remove_columns=column_names(dataset),
         load_from_cache_file=load_from_cache_file,
-        num_proc=num_workers,
+        num_proc=num_proc,
     )
     ds = select_random_chunk(
         ds,
@@ -203,7 +203,7 @@ def prepare_dataset(
         max_sequence_length=65536,
         uniform_random_start=False,
         load_from_cache_file=load_from_cache_file,
-        num_workers=num_workers,
+        num_proc=num_proc,
     )
     ds = split_tokens(
         ds,
@@ -214,7 +214,7 @@ def prepare_dataset(
         max_tokens_per_segment=input_length,
         drop_last=drop_last,
         load_from_cache_file=load_from_cache_file,
-        num_workers=num_workers,
+        num_proc=num_proc,
     )
     return ds
 
@@ -227,7 +227,7 @@ def denoise(
     inputs_fn: Callable[..., np.ndarray],
     targets_fn: Callable[..., np.ndarray],
     load_from_cache_file: bool = True,
-    num_workers: Optional[int] = None,
+    num_proc: Optional[int] = None,
 ) -> Dataset:
     def map_fn(
         features: Dict[str, Union[List[int], np.ndarray]]
@@ -249,7 +249,7 @@ def denoise(
     dataset = dataset.map(
         map_fn,
         load_from_cache_file=load_from_cache_file,
-        num_proc=num_workers,
+        num_proc=num_proc,
     )
 
     return dataset
