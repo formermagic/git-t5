@@ -1,3 +1,4 @@
+import os
 from dataclasses import dataclass
 
 import hydra
@@ -10,6 +11,11 @@ from git_t5.core import (
     T5TrainerConfig,
     WandbLogger,
     WandbLoggerConfig,
+)
+from git_t5.core.configs import (
+    HFDatasetConfig,
+    LocalDatasetConfig,
+    MultitaskDatasetConfig,
 )
 from git_t5.core.optimizers import (
     AdafactorConfig,
@@ -84,6 +90,24 @@ def register_schedulers(cs: ConfigStore) -> None:
     )
 
 
+def register_datasets(cs: ConfigStore) -> None:
+    cs.store(
+        group="dataset",
+        name="base_huggingface_dataset",
+        node=HFDatasetConfig,
+    )
+    cs.store(
+        group="dataset",
+        name="base_local_dataset",
+        node=LocalDatasetConfig,
+    )
+    cs.store(
+        group="dataset",
+        name="base_multitask_dataset",
+        node=MultitaskDatasetConfig,
+    )
+
+
 def register_configs() -> None:
     cs = ConfigStore.instance()
     cs.store(name="default", node=Config)
@@ -110,16 +134,20 @@ def register_configs() -> None:
 
     register_optimizers(cs)
     register_schedulers(cs)
+    register_datasets(cs)
 
 
 @hydra.main(config_path="conf", config_name="config_model")
 def hydra_entry(cfg: Config) -> None:
+    # disable rust iterators multithreading
+    os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
     logger = WandbLogger(cfg.logger)
-    model = T5ModelForPreTraining.from_config(cfg.model)
-    data_module = T5DataModule.from_config(cfg.data)
+    model = T5ModelForPreTraining.from_config(cfg)
+    data_module = T5DataModule.from_config(cfg)
 
     trainer = T5Trainer(
-        config=cfg.trainer,
+        config=cfg,
         model=model,
         data_module=data_module,
         optimizer_config=cfg.optimizer,
