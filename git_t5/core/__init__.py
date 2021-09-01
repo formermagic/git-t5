@@ -1,3 +1,12 @@
+from .configs import (
+    DatasetConfig,
+    HFDatasetConfig,
+    LocalDatasetConfig,
+    MultitaskDatasetConfig,
+    PreTrainedTokenizer,
+    PreTrainedTokenizerConfig,
+    TrainingConfig,
+)
 from .data_module import DataModuleConfig, T5DataModule, T5DataModuleConfig
 from .logger import LoggerConfig, WandbLogger, WandbLoggerConfig
 from .model import ModelConfig, T5ModelForPreTraining, T5ModelForPreTrainingConfig
