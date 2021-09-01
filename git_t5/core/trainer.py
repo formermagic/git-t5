@@ -13,14 +13,15 @@ from flax.training.common_utils import get_metrics
 from flax.training.train_state import TrainState
 from git_t5.core import AutoOptimizer, AutoScheduler, OptimizerConfig
 from git_t5.utils import rank_zero_only
-from omegaconf import MISSING
 from tqdm import tqdm
 
 if TYPE_CHECKING:
-    from .data_module import T5DataModule
-    from .logger import BaseLogger
-    from .model import T5ModelForPreTraining
+    from git_t5.cli.train_model import Config
+    from git_t5.core.data_module import T5DataModule
+    from git_t5.core.logger import BaseLogger
+    from git_t5.core.model import T5ModelForPreTraining
 else:
+    Config = Any
     T5DataModule = Any
     T5ModelForPreTraining = Any
     BaseLogger = Any
@@ -33,21 +34,15 @@ class TrainerConfig:
 
 @dataclass
 class T5TrainerConfig(TrainerConfig):
-    output_dir: str = MISSING
     max_epochs: int = 3
     logging_steps: int = 500
     save_steps: int = 500
-    eval_steps: int = 2000
-    push_to_hub: bool = False
-    push_to_hub_model_id: Optional[str] = None
-    push_to_hub_organization: Optional[str] = None
-    push_to_hub_token: Optional[str] = None
-    checkpoint_dir: Optional[str] = None
+    valid_steps: int = 2000
 
 
 @dataclass
 class T5Trainer:
-    config: T5TrainerConfig
+    config: Config
     model: T5ModelForPreTraining
     data_module: T5DataModule
     optimizer_config: OptimizerConfig
@@ -61,13 +56,13 @@ class T5Trainer:
         self.logger.trainer = self
 
     def fit(self) -> None:
-        num_epochs = self.config.max_epochs
+        num_epochs = self.config.trainer.max_epochs
         train_dataloader = self.data_module.train_dataloader()
         train_samples = len(train_dataloader)
 
         optimizer, scheduler_fn = self.configure_optimizers()
-        state = self.create_state(optimizer, self.config.checkpoint_dir)
-        rng = jax.random.PRNGKey(self.model.config.seed)
+        state = self.create_state(optimizer, self.config.training.checkpoint_dir)
+        rng = jax.random.PRNGKey(self.config.training.seed)
         dropout_rng = jax.random.split(rng, jax.device_count())
 
         train_time = 0
@@ -92,7 +87,7 @@ class T5Trainer:
                 # increase the global train step
                 self.global_step += 1
 
-                if self.global_step % self.config.logging_steps == 0:
+                if self.global_step % self.config.trainer.logging_steps == 0:
                     train_metrics = jax_utils.unreplicate(train_metrics)
                     state_step = jax_utils.unreplicate(state.step)
                     train_lr = scheduler_fn(state_step - 1)
@@ -122,11 +117,11 @@ class T5Trainer:
                     # clear train metrics buffer
                     train_metrics = []
 
-                if self.global_step % self.config.eval_steps == 0:
+                if self.global_step % self.config.trainer.valid_steps == 0:
                     self.validate(state)
 
-                if self.global_step % self.config.save_steps == 0:
-                    self.save_checkpoint(state, self.config.output_dir)
+                if self.global_step % self.config.trainer.save_steps == 0:
+                    self.save_checkpoint(state, self.config.training.output_dir)
 
     def validate(self, state: TrainState) -> None:
         valid_dataloader = self.data_module.valid_dataloader()
@@ -154,10 +149,11 @@ class T5Trainer:
         self,
     ) -> Tuple[optax.GradientTransformation, optax.Schedule]:
         def training_steps() -> int:
-            total_steps = len(self.data_module.dataset["train"])
-            batch_size = self.data_module.config.train_batch_size * jax.device_count()
-            num_epochs = self.config.max_epochs
-            num_train_steps = (total_steps // batch_size) * num_epochs
+            total_steps = len(self.data_module.datasets["train"])
+            batch_size = self.data_module.config.data.train_batch_size
+            total_batch_size = batch_size * jax.device_count()
+            num_epochs = self.config.trainer.max_epochs
+            num_train_steps = (total_steps // total_batch_size) * num_epochs
             return num_train_steps
 
         cfg = self.optimizer_config
@@ -175,7 +171,7 @@ class T5Trainer:
         flax_model.save_pretrained(
             save_dir,
             params=state.params,
-            push_to_hub=self.config.push_to_hub,
+            push_to_hub=self.config.training.push_to_hub,
             commit_message=f"Saving weights and logs of step {state.step}",
         )
 
