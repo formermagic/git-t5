@@ -1,8 +1,15 @@
 [tool.poetry]
 name = "git-t5"
-version = "0.1.0"
-description = ""
+version = "0.2.0"
+description = "Open source machine learning framework for training T5 models on source code in JAX/Flax."
 authors = ["mozharovsky <mozharovsky@live.com>"]
+maintainers = ["mozharovsky <mozharovsky@live.com>"]
+repository = "https://github.com/formermagic/git-t5"
+classifiers = ["Development Status :: 4 - Beta", "Intended Audience :: Developers", "License :: OSI Approved :: MIT License", "Programming Language :: Python", "Programming Language :: Python :: 3.7", "Programming Language :: Python :: 3.8", "Topic :: Software Development :: Libraries"]
+keywords = ["nlp", "machine-learning", "machine-learning-library", "transformers", "t5", "t5-jax", "code-t5"]
+include = ["git_t5", "LICENSE", "README.md"]
+readme = "README.md"
+license = "MIT"
 
 [tool.poetry.scripts]
 gt5-train-tokenizer = 'git_t5.cli.train_tokenizer:main'
