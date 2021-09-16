@@ -33,6 +33,9 @@ class SentencePieceTokenizerConfig(TokenizerConfig):
     add_prefix_space: bool = False
     trim_offsets: bool = False
     min_frequency: int = 2
+    lowercase: bool = False
+    remove_extra_spaces: bool = True
+    unicode_normalizer: Optional[str] = "nfkc"
     unk_token: str = "<unk>"
     eos_token: str = "</s>"
     pad_token: str = "<pad>"
