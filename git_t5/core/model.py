@@ -101,7 +101,7 @@ class T5ModelForPreTraining:
 
             return loss
 
-        dropout_rng, new_dropout_rng = jax.random.split(dropout_rng)
+        dropout_rng, new_dropout_rng = jax.random.split(dropout_rng)  # type: ignore
 
         # compute loss & gradients
         grad_fn = jax.value_and_grad(loss_fn)
@@ -115,7 +115,7 @@ class T5ModelForPreTraining:
         metrics = {"loss": loss, "perplexity": perplexity}
         metrics = jax.lax.pmean(metrics, axis_name="batch")
 
-        return state, metrics, new_dropout_rng
+        return state, metrics, new_dropout_rng  # type: ignore
 
     @partial(
         jax.pmap,
