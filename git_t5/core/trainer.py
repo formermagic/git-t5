@@ -148,11 +148,9 @@ class T5Trainer:
         self,
     ) -> Tuple[optax.GradientTransformation, optax.Schedule]:
         def training_steps() -> int:
-            total_steps = len(self.data_module.datasets["train"])
-            batch_size = self.data_module.config.data.train_batch_size
-            total_batch_size = batch_size * jax.device_count()
+            num_steps = len(self.data_module.datasets["train"])
             num_epochs = self.config.trainer.max_epochs
-            num_train_steps = (total_steps // total_batch_size) * num_epochs
+            num_train_steps = num_steps * num_epochs
             return num_train_steps
 
         cfg = self.config.optimizer
