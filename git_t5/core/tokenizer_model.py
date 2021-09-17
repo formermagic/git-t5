@@ -133,7 +133,7 @@ class SentencePieceTokenizer(BaseTokenizer):
         return normalizers.Sequence(normalizer_list)  # type: ignore
 
     def get_pre_tokenizer(self) -> pre_tokenizers.PreTokenizer:
-        return pre_tokenizers.ByteLevel()
+        return pre_tokenizers.ByteLevel(add_prefix_space=self.config.add_prefix_space)
 
     def get_decoder(self) -> decoders.Decoder:
         return decoders.ByteLevel()
