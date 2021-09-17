@@ -62,6 +62,7 @@ class SentencePieceTokenizerConfig(TokenizerConfig):
     trim_offsets: bool = False
     min_frequency: int = 2
     lowercase: bool = False
+    nmt_normalizer: bool = False
     remove_extra_spaces: bool = True
     unicode_normalizer: Optional[str] = "nfkc"
     unk_token: str = "<unk>"
@@ -127,7 +128,9 @@ class SentencePieceTokenizer(BaseTokenizer):
 
     def get_normalizer(self) -> normalizers.Normalizer:
         normalizer_list: List[normalizers.Normalizer] = []
-        normalizer_list.append(normalizers.Nmt())
+
+        if self.config.nmt_normalizer:
+            normalizer_list.append(normalizers.Nmt())
 
         if self.config.unicode_normalizer is not None:
             normalizer_list.append(unicode_normalizer(self.config.unicode_normalizer))
