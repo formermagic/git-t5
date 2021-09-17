@@ -56,6 +56,8 @@ class TokenizerConfig:
 @dataclass
 class SentencePieceTokenizerConfig(TokenizerConfig):
     dropout: Optional[float] = None
+    continuing_subword_prefix: Optional[str] = None
+    end_of_word_suffix: Optional[str] = None
     add_prefix_space: bool = False
     trim_offsets: bool = False
     min_frequency: int = 2
@@ -89,7 +91,11 @@ class SentencePieceTokenizer(BaseTokenizer):
         parameters = {
             "model": "ByteLevelBPE",
             "add_prefix_space": config.add_prefix_space,
+            "lowercase": config.lowercase,
             "dropout": config.dropout,
+            "unicode_normalizer": config.unicode_normalizer,
+            "continuing_subword_prefix": config.continuing_subword_prefix,
+            "end_of_word_suffix": config.end_of_word_suffix,
             "trim_offsets": config.trim_offsets,
         }
 
@@ -107,6 +113,8 @@ class SentencePieceTokenizer(BaseTokenizer):
             BPE(
                 dropout=self.config.dropout,
                 unk_token=self.config.unk_token,
+                continuing_subword_prefix=self.config.continuing_subword_prefix or "",
+                end_of_word_suffix=self.config.end_of_word_suffix or "",
             )
         )
 
