@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "git-t5"
-version = "0.2.2"
+version = "0.2.3"
 description = "Open source machine learning framework for training T5 models on source code in JAX/Flax."
 authors = ["mozharovsky <mozharovsky@live.com>"]
 maintainers = ["mozharovsky <mozharovsky@live.com>"]
