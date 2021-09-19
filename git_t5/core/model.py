@@ -154,7 +154,6 @@ class T5ModelForPreTraining:
         if config.model.model_path is not None:
             model = FlaxT5ForConditionalGeneration.from_pretrained(
                 config.model.model_path,
-                config=config,
                 seed=config.training.seed,
                 dtype=getattr(jnp, config.model.dtype),
             )
